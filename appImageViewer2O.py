@@ -257,10 +257,10 @@ class MainWindow(inheritedMainWindow):
 			# pass  # ignore action
 			#else:  
 			return
-		#
+		
 		self.view.setMouseTracking(False)
 		print( f"{self.appFileName}: getOneImageV2() try to capture one image" )
-		imBuf = ImageBuffer()  # used to get return pointers
+		imBuf = ImageBuffer()  
 		self.cam.freeze_video(True)
 		# some sleep does not help
 		# sleep(2.5)
@@ -272,8 +272,8 @@ class MainWindow(inheritedMainWindow):
 		retVal = ueye.is_WaitForNextImage(self.cam.handle(), 1000, imBuf.mem_ptr, imBuf.mem_id)
 		if retVal == ueye.IS_SUCCESS:
 			print( f"  ueye.IS_SUCCESS: image buffer id = {imBuf.mem_id}" )
-			self.copy_image( ImageData(self.cam.handle(), imBuf) )  # copy image_data 
-			if (self.npImage.size > 0): # ok 
+			self.copy_image( ImageData(self.cam.handle(), imBuf) )  
+			if (self.npImage.size > 0): 
 				self.image = np2qimage(self.npImage)
 				if (not self.image.isNull()):
 					self.pixmap = QPixmap.fromImage(self.image)
@@ -289,15 +289,12 @@ class MainWindow(inheritedMainWindow):
 					self.view.setMouseTracking(True)
 				else:
 					self.pixmap = QPixmap()
-				#end
-			else:  # empty image self.npImage
+			else:  
 				self.image = QImage()
 				self.pixmap = QPixmap()
 				print( "  no image in buffer " + str(imBuf) )
-			#
 		else: 
 			self.setWindowTitle( "{self.appFileName}: getOneImage() error retVal = {retVal}" )
-		#end if
 		self.setIsAllGray()
 		self.setMenuItems2()
 		return
@@ -307,13 +304,13 @@ class MainWindow(inheritedMainWindow):
 		if ueyeOK and self.camOn:
 			self.view.setMouseTracking(False)
 			print( f"{self.appFileName}: getOneImage() try to capture one image" )
-			imBuf = ImageBuffer()  # used to get return pointers
+			imBuf = ImageBuffer()  
 			self.cam.freeze_video(True)
 			retVal = ueye.is_WaitForNextImage(self.cam.handle(), 1000, imBuf.mem_ptr, imBuf.mem_id)
 			if retVal == ueye.IS_SUCCESS:
 				print( f"  ueye.IS_SUCCESS: image buffer id = {imBuf.mem_id}" )
-				self.copy_image( ImageData(self.cam.handle(), imBuf) )  # copy image_data 
-				if (self.npImage.size > 0): # ok 
+				self.copy_image( ImageData(self.cam.handle(), imBuf) ) 
+				if (self.npImage.size > 0):  
 					self.image = np2qimage(self.npImage)
 					if (not self.image.isNull()):
 						self.pixmap = QPixmap.fromImage(self.image)
@@ -329,18 +326,14 @@ class MainWindow(inheritedMainWindow):
 						self.view.setMouseTracking(True)
 					else:
 						self.pixmap = QPixmap()
-					#end
-				else:  # empty image self.npImage
+				else:  
 					self.image = QImage()
 					self.pixmap = QPixmap()
 					print( "  no image in buffer " + str(imBuf) )
-				#
 			else: 
 				self.setWindowTitle( "{self.appFileName}: getOneImage() error retVal = {retVal}" )
-			#end if
 			self.setIsAllGray()
 			self.setMenuItems2()
-		#else:  				# Display or process the difference image
 
 	def cameraOff(self):
 		"""Turn IDS camera off and print some information."""
@@ -407,11 +400,9 @@ class MainWindow(inheritedMainWindow):
 			self.scaleOne()
 		return
 
-	# Methods for actions on the Dice-menu
 	def prepareHoughCirclesA(self):
 		"""Make self.A the gray scale image to detect circles in"""
 		if (self.A.size == 0):
-			# make self.A a gray scale image
 			if (len(self.npImage.shape) == 3):
 				if (self.npImage.shape[2] == 3):
 					self.A = cv2.cvtColor(self.npImage, cv2.COLOR_BGR2GRAY )
@@ -422,14 +413,12 @@ class MainWindow(inheritedMainWindow):
 				else:
 					print("prepareHoughCircles(): numpy 3D image is not as expected. --> return")
 					return
-				#end
 			elif (len(self.npImage.shape) == 2):
 				self.A = self.npImage.copy()
 				self.B = cv2.cvtColor(self.npImage, cv2.COLOR_GRAY2BGR )   
 			else:
 				print("prepareHoughCircles(): numpy image is not as expected. --> return")
 				return
-			#end
 		return
 		
 	def prepareHoughCirclesB(self):
@@ -439,10 +428,8 @@ class MainWindow(inheritedMainWindow):
 				self.B = self.npImage.copy()
 			elif (self.npImage.shape[2] == 4):
 				self.B = cv2.cvtColor(self.npImage, cv2.COLOR_BGRA2BGR )   
-			#end
 		elif (len(self.npImage.shape) == 2):
 			self.B = cv2.cvtColor(self.npImage, cv2.COLOR_GRAY2BGR )   
-		#end
 		return
 		
 	def tryHoughCircles(self, t):
@@ -497,8 +484,10 @@ class MainWindow(inheritedMainWindow):
 		"""A function to count the number of eyes once black dots are added to the image."""
 		if self.neyes:
 			print(f"Number of eyes: {self.neyes}")
+			self.setWindowTitle(f"{self.appFileName}: (Number of eyes: {self.neyes})")
 		else:
-			print("You have to use FindCircle or BlackDots.")    
+			print("You have to use FindCircle or BlackDots.")   
+ 
 				  
 #end class MainWindow
 
