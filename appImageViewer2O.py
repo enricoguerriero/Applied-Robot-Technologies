@@ -61,6 +61,10 @@ try:
 	from PyQt5.QtGui import QImage, QPixmap, QTransform
 	from PyQt5.QtWidgets import (QApplication, QMainWindow, QAction, QFileDialog, QLabel, 
 			QGraphicsScene, QGraphicsPixmapItem)
+	from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QPushButton, QWidget
+	from PyQt5.QtMultimedia import QCamera, QMediaRecorder
+	from PyQt5.QtMultimediaWidgets import QCameraViewfinder
+	from PyQt5.QtCore import QDir, QUrl
 except ImportError:
 	raise ImportError( f"{_appFileName}: Requires PyQt5." )
 #end try, import PyQt5 classes
@@ -78,6 +82,54 @@ except ImportError:
 
 from appImageViewer1O import myPath, MainWindow as inheritedMainWindow 
 from myImageTools import np2qimage
+
+from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLabel, QVBoxLayout
+from PyQt5.QtGui import QImage, QPixmap
+from PyQt5.QtCore import QTimer, QThread, pyqtSignal, pyqtSlot
+from PyQt5 import QtWidgets, QtCore, QtGui
+
+class Thread1(QThread):
+	changePixmap = pyqtSignal(QImage)
+	
+	def __init__(self, *args, **kwargs):
+		super().__init__()
+
+	def run(self):
+		self.cap1 = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+		self.cap1.set(3,480)
+		self.cap1.set(4,640)
+		self.cap1.set(5,30)
+		while True:
+			ret1, image1 = self.cap1.read()
+			if ret1:
+				im1 = cv2.cvtColor(image1, cv2.COLOR_BGR2RGB)
+				height1, width1, channel1 = im1.shape
+				step1 = channel1 * width1
+				qImg1 = QImage(im1.data, width1, height1, step1, QImage.Format_RGB888)
+				self.changePixmap.emit(qImg1)
+
+class Thread2(QThread):
+	
+	def __init__(self, *args, **kwargs):
+		super().__init__()
+		self.active = True
+
+	def run(self):
+		if self.active:            
+			self.fourcc = cv2.VideoWriter_fourcc(*'XVID') 
+			self.out1 = cv2.VideoWriter('output.avi', self.fourcc, 30, (640,480))
+			self.cap1 = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+			self.cap1.set(3, 480)
+			self.cap1.set(4, 640)
+			self.cap1.set(5, 30)
+			while self.active:                      
+				ret1, image1 = self.cap1.read()
+				if ret1:
+					self.out1.write(image1)     
+				self.msleep(10)                      
+
+	def stop(self):
+		self.out1.release()
 
 class MainWindow(inheritedMainWindow):  
 	"""MainWindow class for this image viewer is inherited from another image viewer."""
@@ -98,6 +150,50 @@ class MainWindow(inheritedMainWindow):
 		# 
 		self.cam = None
 		self.camOn = False
+
+		# # sof
+		# self.control_bt = QPushButton('START')
+		# self.control_bt.clicked.connect(self.controlTimer)
+		# self.image_label = QLabel()
+		# self.saveTimer = QTimer()
+		# self.th1 = Thread1(self)
+		# self.th1.changePixmap.connect(self.setImage)
+		# self.th1.start()
+		
+		# vlayout = QVBoxLayout(self)
+		# vlayout.addWidget(self.image_label)
+		# vlayout.addWidget(self.control_bt) 
+
+		# # Create central widget
+		# self.central_widget = QWidget()
+		# self.setCentralWidget(self.central_widget)
+
+		# # Create layout for central widget
+		# self.layout = QVBoxLayout(self.central_widget)
+
+		# # Create viewfinder and add it to the layout
+		# self.viewfinder = QCameraViewfinder()
+		# self.layout.addWidget(self.viewfinder)
+
+		# # Create start/stop buttons and add them to the layout
+		# self.start_button = QPushButton("Start Recording")
+		# self.stop_button = QPushButton("Stop Recording")
+		# self.stop_button.setEnabled(False)
+
+		# self.layout.addWidget(self.start_button)
+		# self.layout.addWidget(self.stop_button)
+
+		# # Create camera and media recorder objects
+		# self.camera = QCamera()
+		# self.recorder = QMediaRecorder(self.camera)
+
+		# # Set camera viewfinder
+		# self.camera.setViewfinder(self.viewfinder)
+
+		# # Connect buttons to their respective slots
+		# self.start_button.clicked.connect(self.start_recording)
+		# self.stop_button.clicked.connect(self.stop_recording)
+  
 		#
 		# I had some trouble finding a good way to inherit (and add modifications to) 
 		# functions 'initMenu' and 'setMenuItems' from appImageViewer1
@@ -356,15 +452,17 @@ class MainWindow(inheritedMainWindow):
 		# Durata del timer in secondi
 		timer_duration = 20
 		elapsed_time = 0
-		print("prova2")
-		while elapsed_time <= timer_duration:
-			elapsed_time = time.time() - start_time
-			self.getOneImageV2()
-			print("prova")
-			time.sleep(5)
-			#self.findCircles()
-			#self.countEyes()
-   
+		# print("prova2")
+		# while elapsed_time <= timer_duration:
+		# 	elapsed_time = time.time() - start_time
+		# 	self.getOneImageV2()
+		# 	print("prova")
+		# 	time.sleep(5)
+		# 	#self.findCircles()
+		# 	#self.countEyes()
+		self.cam.capture_video()
+		time.sleep(5)
+		self.cam.stop_video()
 		print("ciao")
 		return
 
@@ -445,7 +543,7 @@ class MainWindow(inheritedMainWindow):
 			# Se la rotondità è prossima a 1, è probabile che sia un cerchio
 			if 0.7 < circularity < 1.2:
 				cv2.drawContours(output_image, [contour], -1, 255, thickness=cv2.FILLED)
-    
+	
 		inverted_image = cv2.bitwise_not(output_image)
 		self.npImage = inverted_image
   
@@ -541,6 +639,52 @@ class MainWindow(inheritedMainWindow):
 			self.setWindowTitle(f"{self.appFileName}: (Number of eyes: {self.neyes})")
 		else:
 			print("You have to use FindCircle or BlackDots.")   
+		return
+   
+	# def start_recording(self):
+	# 	self.camera.setCaptureMode(QCamera.CaptureVideo)
+	# 	self.camera.start()
+	# 	# Define the save location for the video
+	# 	save_location = QDir.currentPath() + "/output_video.mp4"
+	# 	self.recorder.setOutputLocation(QUrl.fromLocalFile(save_location))
+		
+	# 	# Start recording
+	# 	self.recorder.record()
+
+	# 	# Update button states
+	# 	self.start_button.setEnabled(False)
+	# 	self.stop_button.setEnabled(True)
+
+	# def stop_recording(self):
+	# 	# Stop the recording
+	# 	self.recorder.stop()
+
+	# 	# Update button states
+	# 	self.start_button.setEnabled(True)
+	# 	self.stop_button.setEnabled(False)
+  
+  
+	# @QtCore.pyqtSlot(QImage)
+	# def setImage(self, qImg1):
+	# 	self.image_label.setPixmap(QPixmap.fromImage(qImg1))
+
+	# def controlTimer(self):
+	# 	if not self.saveTimer.isActive():
+	# 		# write video
+	# 		self.saveTimer.start()
+	# 		self.th2 = Thread2(self)
+	# 		self.th2.active = True                                
+	# 		self.th2.start()
+	# 		# update control_bt text
+	# 		self.control_bt.setText("STOP")
+	# 	else:
+	# 		# stop writing
+	# 		self.saveTimer.stop()
+	# 		self.th2.active = False                   
+	# 		self.th2.stop()                         
+	# 		self.th2.terminate()                    
+	# 		# update control_bt text
+	# 		self.control_bt.setText("START")
  
 				  
 #end class MainWindow
