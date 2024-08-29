@@ -34,7 +34,7 @@ except ImportError:
 	raise ImportError( f"{_appFileName}: Requires PyQt5." )
 #end try, import PyQt5 classes
 
-from appImageViewer2 import myPath, MainWindow as inheritedMainWindow 
+from appImageViewer2O import myPath, MainWindow as inheritedMainWindow 
 from clsHoughCirclesDialog import HoughCirclesDialog
 
 # define 17 colorNames as in: https://doc.qt.io/qt-5/qcolor.html 

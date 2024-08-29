@@ -340,10 +340,8 @@ class MainWindow(inheritedMainWindow):
 			#end if
 			self.setIsAllGray()
 			self.setMenuItems2()
-		#else:  
-		#	pass  # ignore action
-		return
-		
+		#else:  				# Display or process the difference image
+
 	def cameraOff(self):
 		"""Turn IDS camera off and print some information."""
 		if ueyeOK and self.camOn:
@@ -409,38 +407,98 @@ class MainWindow(inheritedMainWindow):
 			self.scaleOne()
 		return
 
+	# Methods for actions on the Dice-menu
+	def prepareHoughCirclesA(self):
+		"""Make self.A the gray scale image to detect circles in"""
+		if (self.A.size == 0):
+			# make self.A a gray scale image
+			if (len(self.npImage.shape) == 3):
+				if (self.npImage.shape[2] == 3):
+					self.A = cv2.cvtColor(self.npImage, cv2.COLOR_BGR2GRAY )
+					self.B = self.npImage.copy()
+				elif (self.npImage.shape[2] == 4):
+					self.A = cv2.cvtColor(self.npImage, cv2.COLOR_BGRA2GRAY )
+					self.B = cv2.cvtColor(self.npImage, cv2.COLOR_BGRA2BGR )   
+				else:
+					print("prepareHoughCircles(): numpy 3D image is not as expected. --> return")
+					return
+				#end
+			elif (len(self.npImage.shape) == 2):
+				self.A = self.npImage.copy()
+				self.B = cv2.cvtColor(self.npImage, cv2.COLOR_GRAY2BGR )   
+			else:
+				print("prepareHoughCircles(): numpy image is not as expected. --> return")
+				return
+			#end
+		return
+		
+	def prepareHoughCirclesB(self):
+		"""Make self.B the BGR image to draw detected circles in"""
+		if (len(self.npImage.shape) == 3):
+			if (self.npImage.shape[2] == 3):
+				self.B = self.npImage.copy()
+			elif (self.npImage.shape[2] == 4):
+				self.B = cv2.cvtColor(self.npImage, cv2.COLOR_BGRA2BGR )   
+			#end
+		elif (len(self.npImage.shape) == 2):
+			self.B = cv2.cvtColor(self.npImage, cv2.COLOR_GRAY2BGR )   
+		#end
+		return
+		
+	def tryHoughCircles(self, t):
+		"""Simply display results for the parameters given in tuple 't', without committing."""
+		(dp, minDist, param1, param2, minRadius, maxRadius, maxCircles) = t
+		print("tryHoughCircles(): now called using:")
+		print(f"t = (dp={dp}, minDist={minDist}, param1={param1}, param2={param2}, minRadius={minRadius}, maxRadius={maxRadius})")
+
+		self.prepareHoughCirclesA()  
+		C = cv2.HoughCircles(self.A, cv2.HOUGH_GRADIENT, dp=dp, minDist=minDist,
+					param1=param1, param2=param2, minRadius=minRadius, maxRadius=maxRadius)
+
+		self.prepareHoughCirclesB()  
+		if C is not None:
+			C = np.int16(np.around(C))
+			print(f"  'C'  is ndarray of {C.dtype.name}, shape: {str(C.shape)}")
+			print(f"  Found {C.shape[1]} circles with radius from {C[0,:,2].min()} to {C[0,:,2].max()}")
+			for i in range(min(maxCircles, C.shape[1])):
+				(x,y,r) = ( C[0,i,0], C[0,i,1], C[0,i,2] ) 
+				cv2.circle(self.B, (x,y), r, (255, 0, 255), 2) 
+				print(f"  circle {i} has center in ({x},{y}) and radius {r}")
+		self.np2image2pixmap(self.B, numpyAlso=False)   
+		return
+	
 	def findCircles(self):
-		"""Find circles in image using cv2.HoughCircles()"""
-		if self.npImage.size > 0:
-			gray = cv2.cvtColor(self.npImage, cv2.COLOR_BGR2GRAY)
-			circles = cv2.HoughCircles(gray, cv2.HOUGH_GRADIENT, 1, 20,
-									   param1=50, param2=30, minRadius=0, maxRadius=0)
-			if circles is not None:
-				circles = np.round(circles[0, :]).astype(int)
-				for (x, y, r) in circles:
-					cv2.circle(self.npImage, (x, y), r, (0, 255, 0), 4)
-				self.image = np2qimage(self.npImage)
-				self.pixmap = QPixmap.fromImage(self.image)
-				self.curItem = QGraphicsPixmapItem(self.pixmap)
-				self.scene.addItem(self.curItem)
-				self.scene.setSceneRect(0, 0, self.pixmap.width(), self.pixmap.height())
-				self.setWindowTitle(f"{self.appFileName} : Camera image with circles")
-				(w, h) = (self.pixmap.width(), self.pixmap.height())
-				self.status.setText(f"pixmap: (w,h) = ({w},{h})")
-				self.scaleOne()
+		"""Find circles in active image using HoughCircles(..)."""
+		oldPixmap = self.prevPixmap  
+		self.prevPixmap = self.pixmap
+		self.A = np.array([])  
+		self.prepareHoughCirclesA()  
+
+		(dp, minDist, param1, param2, minRadius, maxRadius, maxCircles) = (2, 40, 100, 60, 20, 60, 20)
+		C = cv2.HoughCircles(self.A, cv2.HOUGH_GRADIENT, dp=dp, minDist=minDist,
+				param1=param1, param2=param2, minRadius=minRadius, maxRadius=maxRadius)
+
+		self.prepareHoughCirclesB()  
+		if C is not None:
+			C = np.int16(np.around(C))
+			print(f"  'C'  is ndarray of {C.dtype.name}, shape: {str(C.shape)}")
+			self.neyes = C.shape[1]
+			for i in range(min(maxCircles, C.shape[1])):
+				(x,y,r) = ( C[0,i,0], C[0,i,1], C[0,i,2] )  
+				cv2.circle(self.B, (x,y), r, (0, 0, 255), 3) 
+		self.A = np.array([])  
+		self.np2image2pixmap(self.B, numpyAlso=True)
+		self.B = np.array([])  
+		self.setWindowTitle(f"{self.appFileName} indicate found circles.")
+
 		return
 
 	def countEyes(self):
 		"""A function to count the number of eyes once black dots are added to the image."""
-		if self.npImage.size > 0:
-			gray = cv2.cvtColor(self.npImage, cv2.COLOR_BGR2GRAY)
-			circles = cv2.HoughCircles(gray, cv2.HOUGH_GRADIENT, 1, 20,
-									   param1=50, param2=30, minRadius=0, maxRadius=0)
-			if circles is not None:
-				num_eyes = len(circles[0])
-				print(f"Number of eyes detected: {num_eyes}")
-			else:
-				print("No eyes detected.")     
+		if self.neyes:
+			print(f"Number of eyes: {self.neyes}")
+		else:
+			print("You have to use FindCircle or BlackDots.")    
 				  
 #end class MainWindow
 
