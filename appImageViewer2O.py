@@ -53,6 +53,7 @@ from time import sleep
 import cv2
 
 try:
+	from clsThresholdDialog import ThresholdDialog
 	from PyQt5.QtCore import Qt, QPoint, QRectF, QT_VERSION_STR
 	from PyQt5.QtGui import QImage, QPixmap, QTransform
 	from PyQt5.QtWidgets import (QApplication, QMainWindow, QAction, QFileDialog, QLabel, 
@@ -357,20 +358,50 @@ class MainWindow(inheritedMainWindow):
 		print( f"{self.appFileName}: newCameraFunction() new function for camera")
   
 	def blackDots(self):
-		"""Add black dots to image."""
-		if self.npImage.size > 0:
-			(w,h) = (self.npImage.shape[1], self.npImage.shape[0])
-			for i in range(0,w,10):
-				for j in range(0,h,10):
-					self.npImage[j:j+3,i:i+3] = 0
-			self.image = np2qimage(self.npImage)
-			self.pixmap = QPixmap.fromImage(self.image)
-			self.curItem = QGraphicsPixmapItem(self.pixmap)
-			self.scene.addItem(self.curItem)
-			self.scene.setSceneRect(0, 0, self.pixmap.width(), self.pixmap.height())
-			self.setWindowTitle( f"{self.appFileName} : Camera image with black dots" ) 
-			self.status.setText( f"pixmap: (w,h) = ({w},{h})" )
-			self.scaleOne()
+		grayscale_image = cv2.cvtColor(self.npImage, cv2.COLOR_BGR2GRAY)
+		self.prevPixmap = self.pixmap   
+		#d = ThresholdDialog(parent=B)   # create object (but does not run it)
+		#t = 60  # display dialog and return values
+		(used_thr,grayscale_image) = cv2.threshold(grayscale_image, thresh=60, maxval=255, type=cv2.THRESH_BINARY)
+  
+		# Applica una soglia per ottenere un'immagine binaria
+		_, binary_image = cv2.threshold(grayscale_image, thresh=60, maxval=255, type=cv2.THRESH_BINARY_INV)
+
+		# Definisci un kernel (matrice) per le operazioni morfologiche
+		kernel = np.ones((3, 3), np.uint8)
+
+		# Applica l'operazione di apertura per rimuovere il rumore (erosione seguita da dilatazione)
+		opened_image = cv2.morphologyEx(binary_image, cv2.MORPH_OPEN, kernel)
+
+		# Trova i contorni nell'immagine binaria
+		contours, _ = cv2.findContours(opened_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+		# Crea un'immagine vuota per disegnare solo i cerchi trovati
+		output_image = np.zeros_like(grayscale_image)
+
+		# Filtro i contorni per mantenere solo i cerchi
+		for contour in contours:
+			# Calcola l'area del contorno
+			area = cv2.contourArea(contour)
+			
+			# Ignora i contorni troppo piccoli o troppo grandi
+			if area < 50 or area > 10000:
+				continue
+			
+			# Approssima il contorno a un cerchio e calcola la rotondità
+			perimeter = cv2.arcLength(contour, True)
+			circularity = 4 * np.pi * (area / (perimeter ** 2))
+			
+			# Se la rotondità è prossima a 1, è probabile che sia un cerchio
+			if 0.7 < circularity < 1.2:
+				cv2.drawContours(output_image, [contour], -1, 255, thickness=cv2.FILLED)
+    
+		inverted_image = cv2.bitwise_not(output_image)
+		self.npImage = inverted_image
+  
+		print( f"toBinary: The used threshold value is {used_thr}" )
+		self.np2image2pixmap(inverted_image, numpyAlso=True)
+		self.setWindowTitle( f"{self.appFileName} : binary image with only circle" )
 		return
 
 	def findCircles(self):
