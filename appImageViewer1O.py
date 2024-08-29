@@ -191,6 +191,7 @@ class MainWindow(QMainWindow):
 		#
 		self.initMenu()  # menu is needed before (!) self.openFile(..)
 		#
+		self.fName = fName
 		if isinstance(fName, str) and (fName != ""):
 			self.openFile(fName)
 		#
@@ -264,6 +265,27 @@ class MainWindow(QMainWindow):
 		a.setShortcut('Ctrl+Z')
 		a.triggered.connect(self.undoLast)
 		#
+		a = self.qaArrayProperties = QAction('Array Properties', self)
+		a.triggered.connect(self.ArrayProperties)
+		a.setToolTip('Print properties of array')
+		a = self.qaOpenwithcv = QAction('Cv2', self)
+		a.triggered.connect(self.Openwithcv)
+		a.setToolTip('Open with cv2')
+		a = self.qaGrayScale = QAction('Gray scale', self)
+		a.triggered.connect(self.ConvertToGray)
+		a.setToolTip('Convert to gray scale')
+		a = self.qahistogramGray = QAction('histogram', self)
+		a.triggered.connect(self.histogramGray)
+		a.setToolTip('Display Histogram')
+		a = self.qacorner = QAction('Detect Corner', self)
+		a.triggered.connect(self.detectCornersHarris)
+		a.setToolTip('Detect Corners with Harris')
+		a = self.qadrawlines = QAction('Lines', self)
+		a.triggered.connect(self.drawlines)
+		a.setToolTip('Draw lines in red')
+		a = self.qarotateimage = QAction('Rotate', self)
+		a.triggered.connect(self.rotate_image)
+		a.setToolTip('Rotate image')
 		# menuBar is a function in QMainWindow class, returns a QMenuBar object
 		self.mainMenu = self.menuBar()  
 		self.fileMenu = self.mainMenu.addMenu('&File')
@@ -288,6 +310,15 @@ class MainWindow(QMainWindow):
 		editMenu.addAction(self.qaToBinary)
 		editMenu.addAction(self.qaUndoLast)
 		editMenu.setToolTipsVisible(True)
+		# custom
+		homeworkMenu = self.mainMenu.addMenu('&Homework')
+		homeworkMenu.addAction(self.qaArrayProperties)
+		homeworkMenu.addAction(self.qaOpenwithcv)
+		homeworkMenu.addAction(self.qaGrayScale)
+		homeworkMenu.addAction(self.qahistogramGray)
+		homeworkMenu.addAction(self.qacorner)
+		homeworkMenu.addAction(self.qadrawlines)
+		homeworkMenu.addAction(self.qarotateimage)
 		# print( f"File {_appFileName}: (debug) last line in MainWindow.initMenu()" )
 		return
 	#end function initMenu
@@ -504,8 +535,8 @@ class MainWindow(QMainWindow):
 		#end if image
 		if isinstance(self.npImage, np.ndarray):   # also print information on this numpy array
 			print( (f"self.npImage()      = "
-			        f"numpy {len(self.npImage.shape)}D array " + 
-			        f"of {self.npImage.dtype.name}, shape {str(self.npImage.shape)}") )
+					f"numpy {len(self.npImage.shape)}D array " + 
+					f"of {self.npImage.dtype.name}, shape {str(self.npImage.shape)}") )
 		return
 	
 	def quitProgram(self):
@@ -560,7 +591,7 @@ class MainWindow(QMainWindow):
 		(w, h) = (rectangle.width(), rectangle.height())
 		if (w > 5) and (h > 5):
 			print( (f"cropImage(): Rectangle from (x,y)=({p2.x()},{p2.y()})" +
-			        f" and (w,h)=({w},{h})") )
+					f" and (w,h)=({w},{h})") )
 			self.prevPixmap = self.pixmap
 			self.pixmap = self.prevPixmap.copy(p2.x(), p2.y(), w, h)
 			self.pixmap2image2np()
@@ -617,10 +648,10 @@ class MainWindow(QMainWindow):
 			if max((left,right,top,bottom)):
 				if (w <= 0) or (h <= 0):
 					print( ("cropImage(): Don't crop since (left,right,top,bottom)" +
-					        f" = ({left},{right},{top},{bottom})") )
+							f" = ({left},{right},{top},{bottom})") )
 				else:
 					print( ("cropImage(): Crop outside of rectangle from (x,y)" +
-					        f"=({left},{top}) and (w,h)=({w},{h})") )
+							f"=({left},{top}) and (w,h)=({w},{h})") )
 					self.prevPixmap = self.pixmap 
 					if (len(A.shape) == 3) and (A.shape[2] >= 3):  # color img
 						print("cropImage(): Crop color")
@@ -679,7 +710,7 @@ class MainWindow(QMainWindow):
 		#
 		self.setMenuItems()
 		print( (f"toGray: npImage is an array of {self.npImage.dtype.name}," + 
-		        f" shape {str(self.npImage.shape)}.") )
+				f" shape {str(self.npImage.shape)}.") )
 		return 
 	#end function toGray
 	
@@ -870,7 +901,145 @@ class MainWindow(QMainWindow):
 			print("MainWindow: Press RightButton at: " + str(event.pos()))
 		return
 	#end function mousePressEvent
+ 
+	def ArrayProperties(self):
+		print(self.npImage.shape)
+		print(self.npImage.nbytes)
 
+	def Openwithcv(self):
+		cv2.imshow('Image Window', self.npImage)
+		cv2.waitKey(10000)
+		cv2.destroyAllWindows()
+	
+	def ConvertToGray(self):
+		gray_image = cv2.cvtColor(self.npImage, cv2.COLOR_BGR2GRAY)
+		cv2.imshow('Image Window', gray_image)
+		cv2.waitKey(10000)
+		cv2.destroyAllWindows()
+  
+	def histogramGray(self):
+		gray_image = cv2.cvtColor(self.npImage, cv2.COLOR_BGR2GRAY)
+		hist = cv2.calcHist([gray_image], [0], None, [256], [0, 256])
+		hist = hist / hist.sum()
+		plt.figure(figsize=(10, 6))
+		plt.title("Histogram of the image in gray scale")
+		plt.xlabel("Intensity of pixel")
+		plt.ylabel("Frequency normalized")
+		plt.plot(hist, color='black')
+		plt.xlim([0, 256]) 
+		plt.grid(True)
+		plt.show()
+  
+	def emphasizeEdgesWithSobel(self):
+		"""Apply Sobel filter to emphasize edges in the image."""
+		if self.npImage is None or not isinstance(self.npImage, np.ndarray):
+			print("No valid image loaded.")
+			return
+		if len(self.npImage.shape) == 3 and self.npImage.shape[2] == 3:
+			gray_image = cv2.cvtColor(self.npImage, cv2.COLOR_BGR2GRAY)
+		elif len(self.npImage.shape) == 3 and self.npImage.shape[2] == 4:
+			gray_image = cv2.cvtColor(self.npImage, cv2.COLOR_BGRA2GRAY)
+		else:
+			gray_image = self.npImage  
+		sobel_x = cv2.Sobel(gray_image, cv2.CV_64F, 1, 0, ksize=3)
+		sobel_y = cv2.Sobel(gray_image, cv2.CV_64F, 0, 1, ksize=3)
+		sobel_magnitude = np.sqrt(sobel_x**2 + sobel_y**2)
+		sobel_magnitude = np.uint8(255 * sobel_magnitude / np.max(sobel_magnitude))
+		self.np2image2pixmap(sobel_magnitude, numpyAlso=True)
+		self.setWindowTitle(f"{self.appFileName} : Sobel edge emphasized image")
+		print("Edges emphasized using the Sobel filter.")
+		self.setMenuItems()
+
+	def detectCornersHarris(self):
+		try:
+			if self.npImage is None or not isinstance(self.npImage, np.ndarray):
+				print("No valid image loaded.")
+				return
+			max_dim = 1000
+			if max(self.npImage.shape[:2]) > max_dim:
+				scale_factor = max_dim / max(self.npImage.shape[:2])
+				self.npImage = cv2.resize(self.npImage, (0, 0), fx=scale_factor, fy=scale_factor)
+				print(f"Image resized to {self.npImage.shape[1]}x{self.npImage.shape[0]} for performance reasons.")
+			if len(self.npImage.shape) == 3 and self.npImage.shape[2] == 3:
+				gray_image = cv2.cvtColor(self.npImage, cv2.COLOR_BGR2GRAY)
+			elif len(self.npImage.shape) == 3 and self.npImage.shape[2] == 4:
+				gray_image = cv2.cvtColor(self.npImage, cv2.COLOR_BGRA2GRAY)
+			else:
+				gray_image = self.npImage  
+			gray_image = np.float32(gray_image)
+			harris_response = cv2.cornerHarris(gray_image, blockSize=2, ksize=3, k=0.04)
+			harris_response = cv2.dilate(harris_response, None)
+			if len(self.npImage.shape) == 2:  
+				self.npImage = cv2.cvtColor(self.npImage, cv2.COLOR_GRAY2BGR)
+			threshold_value = 0.01 * harris_response.max()
+			corner_count = 0
+			for y in range(harris_response.shape[0]):
+				for x in range(harris_response.shape[1]):
+					if harris_response[y, x] > threshold_value:
+						if corner_count < 1000:  
+							x_int, y_int = int(x), int(y)
+							try:
+								cv2.circle(self.npImage, (x_int, y_int), 5, (0, 0, 255), 1)  
+								corner_count += 1
+							except Exception as e:
+								print(f"Error drawing circle at ({x_int}, {y_int}): {e}")
+						else:
+							break
+			self.np2image2pixmap(self.npImage, numpyAlso=False)
+			self.setWindowTitle(f"{self.appFileName} : Harris Corner Detection")
+			print(f"Corners detected using Harris Corner Detection: {corner_count} corners displayed.")
+			self.setMenuItems()
+		except Exception as e:
+			print(f"An error occurred during Harris corner detection: {e}")
+   
+	def swapRandB(self):
+		if (len(self.npImage.shape) == 3) and (self.npImage.shape[2] >= 3):
+			B = cv2.cvtColor(self.npImage, cv2.COLOR_BGR2RGBA)
+			self.np2image2pixmap(B, numpyAlso=True)
+			self.setWindowTitle( f"{self.appFileName} : image where Red and Blue components are swapped" )
+		else:
+			print( "swapRandB: npImage is not an RGB/BGR image, swap black and white." )
+			B =  255 - self.npImage
+			self.np2image2pixmap(B, numpyAlso=True)
+			self.setWindowTitle( f"{self.appFileName} : image where black and white are swapped" )
+		self.setMenuItems()  
+		return
+
+	def drawlines(self):
+		img = self.npImage
+		gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+		edges = cv2.Canny(gray, 50, 150, apertureSize=3)
+		lines = cv2.HoughLines(edges, 1, np.pi/180, 200)
+		
+		# Convert grayscale image back to BGR
+		img_bgr = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
+
+		if lines is not None:
+			for line in lines:
+				rho, theta = line[0]
+				a = np.cos(theta)
+				b = np.sin(theta)
+				x0 = a * rho
+				y0 = b * rho
+				x1 = int(x0 + 1000 * (-b))
+				y1 = int(y0 + 1000 * (a))
+				x2 = int(x0 - 1000 * (-b))
+				y2 = int(y0 - 1000 * (a))
+				cv2.line(img_bgr, (x1, y1), (x2, y2), (0, 0, 255), 2)  # Red color (BGR)
+
+		self.np2image2pixmap(img_bgr, numpyAlso=False)
+		self.setWindowTitle(f"{self.appFileName}: Draw Lines")
+
+	def rotate_90_clockwise(matrix):
+		return [list(reversed(col)) for col in zip(*matrix)]
+
+	def rotate_image(self):
+		rotated_image = self.rotate_90_clockwise(self.npImage)
+		self.np2image2pixmap(rotated_image, numpyAlso=True)
+		self.setWindowTitle(f"{self.appFileName} : Rotated Image")
+		self.setMenuItems()
+
+		
 #end class MainWindow
 		
 if __name__ == '__main__':
@@ -889,4 +1058,3 @@ if __name__ == '__main__':
 		mainWin = MainWindow()
 	mainWin.show()
 	sys.exit(mainApp.exec_())
-

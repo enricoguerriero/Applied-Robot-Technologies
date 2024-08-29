@@ -50,6 +50,7 @@ import sys
 import os.path
 import numpy as np
 from time import sleep
+import cv2
 
 try:
 	from PyQt5.QtCore import Qt, QPoint, QRectF, QT_VERSION_STR
@@ -71,7 +72,7 @@ except ImportError:
 	ueyeOK = False   # --> may run program even without pyueye
 #end try, import pyueye
 
-from appImageViewer1 import myPath, MainWindow as inheritedMainWindow 
+from appImageViewer1O import myPath, MainWindow as inheritedMainWindow 
 from myImageTools import np2qimage
 
 class MainWindow(inheritedMainWindow):  
@@ -122,13 +123,30 @@ class MainWindow(inheritedMainWindow):
 		a = self.qaCameraOff = QAction('Camera off', self)
 		a.triggered.connect(self.cameraOff)
 		#
+		a = self.qanewcamerafunction = QAction('New camera function', self)
+		a.triggered.connect(self.newCameraFunction)
+		#
+		a = self.qaBlackDots = QAction('Add black dots', self)
+		a.triggered.connect(self.blackDots)
+		#
+		a = self.qaFindCircles = QAction('Find circles', self)
+		a.triggered.connect(self.findCircles)
+		#
+		a = self.qaCountEyes = QAction('Count eyes', self)
+		a.triggered.connect(self.countEyes)			
+		#
 		camMenu = self.mainMenu.addMenu('&Camera')
 		camMenu.addAction(self.qaCameraOn)
 		camMenu.addAction(self.qaCameraInfo)
 		camMenu.addAction(self.qaGetOneImage)
 		camMenu.addAction(self.qaGetOneImageV2)
 		camMenu.addAction(self.qaCameraOff)
+		camMenu.addAction(self.qanewcamerafunction)
 		# print( "File {_appFileName}: (debug) last line in initMenu2()" ) 
+		diceMenu = self.mainMenu.addMenu('&Dice')
+		diceMenu.addAction(self.qaBlackDots)
+		diceMenu.addAction(self.qaFindCircles)
+		diceMenu.addAction(self.qaCountEyes)
 		return
 	
 # Some methods that may be used by several of the menu actions
@@ -153,7 +171,7 @@ class MainWindow(inheritedMainWindow):
 		if np.min(tempBilde) != np.max(tempBilde):
 			self.npImage = np.copy(tempBilde[:,:,[0,1,2]])  # or [2,1,0] ??  RGB or BGR?
 			print( ("copy_image(): 'self.npImage' is an ndarray" + 
-			        f" of {self.npImage.dtype.name}, shape {str(self.npImage.shape)}.") )
+					f" of {self.npImage.dtype.name}, shape {str(self.npImage.shape)}.") )
 		else: 
 			self.npImage = np.array([])  # size == 0
 		#end if 
@@ -190,15 +208,15 @@ class MainWindow(inheritedMainWindow):
 			if retVal == ueye.IS_SUCCESS:
 				print( f"  frame rate set to                      {float(d):8.3f} fps" )
 			retVal = ueye.is_Exposure(self.cam.handle(), 
-			                          ueye.IS_EXPOSURE_CMD_GET_EXPOSURE_DEFAULT, d, 8)
+									  ueye.IS_EXPOSURE_CMD_GET_EXPOSURE_DEFAULT, d, 8)
 			if retVal == ueye.IS_SUCCESS:
 				print( f"  default setting for the exposure time  {float(d):8.3f} ms" )
 			retVal = ueye.is_Exposure(self.cam.handle(), 
-			                          ueye.IS_EXPOSURE_CMD_GET_EXPOSURE_RANGE_MIN, d, 8)
+									  ueye.IS_EXPOSURE_CMD_GET_EXPOSURE_RANGE_MIN, d, 8)
 			if retVal == ueye.IS_SUCCESS:
 				print( f"  minimum exposure time                  {float(d):8.3f} ms" )
 			retVal = ueye.is_Exposure(self.cam.handle(), 
-			                          ueye.IS_EXPOSURE_CMD_GET_EXPOSURE_RANGE_MAX, d, 8)
+									  ueye.IS_EXPOSURE_CMD_GET_EXPOSURE_RANGE_MAX, d, 8)
 			if retVal == ueye.IS_SUCCESS:
 				print( f"  maximum exposure time                  {float(d):8.3f} ms" )
 			# 
@@ -333,7 +351,61 @@ class MainWindow(inheritedMainWindow):
 			self.setMenuItems2()
 			print( f"{self.appFileName}: cameraOff() Camera stopped ok" )
 		return
-	
+
+	def newCameraFunction(self):
+		"""New function for camera."""
+		print( f"{self.appFileName}: newCameraFunction() new function for camera")
+  
+	def blackDots(self):
+		"""Add black dots to image."""
+		if self.npImage.size > 0:
+			(w,h) = (self.npImage.shape[1], self.npImage.shape[0])
+			for i in range(0,w,10):
+				for j in range(0,h,10):
+					self.npImage[j:j+3,i:i+3] = 0
+			self.image = np2qimage(self.npImage)
+			self.pixmap = QPixmap.fromImage(self.image)
+			self.curItem = QGraphicsPixmapItem(self.pixmap)
+			self.scene.addItem(self.curItem)
+			self.scene.setSceneRect(0, 0, self.pixmap.width(), self.pixmap.height())
+			self.setWindowTitle( f"{self.appFileName} : Camera image with black dots" ) 
+			self.status.setText( f"pixmap: (w,h) = ({w},{h})" )
+			self.scaleOne()
+		return
+
+	def findCircles(self):
+		"""Find circles in image using cv2.HoughCircles()"""
+		if self.npImage.size > 0:
+			gray = cv2.cvtColor(self.npImage, cv2.COLOR_BGR2GRAY)
+			circles = cv2.HoughCircles(gray, cv2.HOUGH_GRADIENT, 1, 20,
+									   param1=50, param2=30, minRadius=0, maxRadius=0)
+			if circles is not None:
+				circles = np.round(circles[0, :]).astype(int)
+				for (x, y, r) in circles:
+					cv2.circle(self.npImage, (x, y), r, (0, 255, 0), 4)
+				self.image = np2qimage(self.npImage)
+				self.pixmap = QPixmap.fromImage(self.image)
+				self.curItem = QGraphicsPixmapItem(self.pixmap)
+				self.scene.addItem(self.curItem)
+				self.scene.setSceneRect(0, 0, self.pixmap.width(), self.pixmap.height())
+				self.setWindowTitle(f"{self.appFileName} : Camera image with circles")
+				(w, h) = (self.pixmap.width(), self.pixmap.height())
+				self.status.setText(f"pixmap: (w,h) = ({w},{h})")
+				self.scaleOne()
+		return
+
+	def countEyes(self):
+		"""A function to count the number of eyes once black dots are added to the image."""
+		if self.npImage.size > 0:
+			gray = cv2.cvtColor(self.npImage, cv2.COLOR_BGR2GRAY)
+			circles = cv2.HoughCircles(gray, cv2.HOUGH_GRADIENT, 1, 20,
+									   param1=50, param2=30, minRadius=0, maxRadius=0)
+			if circles is not None:
+				num_eyes = len(circles[0])
+				print(f"Number of eyes detected: {num_eyes}")
+			else:
+				print("No eyes detected.")     
+				  
 #end class MainWindow
 
 if __name__ == '__main__':
