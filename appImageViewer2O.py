@@ -46,12 +46,14 @@ _appFileName = "appImageViewer2"
 _author = "Karl Skretting, UiS" 
 _version = "2022.06.27"
 
+import keyword
 import sys
 import os.path
-import numpy as np
 from time import sleep
 import cv2
 import time
+
+import numpy as np
 
 try:
 	from clsThresholdDialog import ThresholdDialog
@@ -137,6 +139,9 @@ class MainWindow(inheritedMainWindow):
 		a = self.qaCountEyes = QAction('Count eyes', self)
 		a.triggered.connect(self.countEyes)			
 		#
+		a = self.qaVideoOn = QAction('Count eyes in video', self)
+		a.triggered.connect(self.videoOn)	
+		#
 		camMenu = self.mainMenu.addMenu('&Camera')
 		camMenu.addAction(self.qaCameraOn)
 		camMenu.addAction(self.qaCameraInfo)
@@ -149,6 +154,7 @@ class MainWindow(inheritedMainWindow):
 		diceMenu.addAction(self.qaBlackDots)
 		diceMenu.addAction(self.qaFindCircles)
 		diceMenu.addAction(self.qaCountEyes)
+		diceMenu.addAction(self.qaVideoOn)
 		return
 	
 # Some methods that may be used by several of the menu actions
@@ -343,6 +349,23 @@ class MainWindow(inheritedMainWindow):
 			self.camOn = False
 			self.setMenuItems2()
 			print( f"{self.appFileName}: cameraOff() Camera stopped ok" )
+		return
+
+	def videoOn(self):
+		start_time = time.time()
+		# Durata del timer in secondi
+		timer_duration = 20
+		elapsed_time = 0
+		print("prova2")
+		while elapsed_time <= timer_duration:
+			elapsed_time = time.time() - start_time
+			self.getOneImageV2()
+			print("prova")
+			time.sleep(5)
+			#self.findCircles()
+			#self.countEyes()
+   
+		print("ciao")
 		return
 
 	def newCameraFunction(self):
