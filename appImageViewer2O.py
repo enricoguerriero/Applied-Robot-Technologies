@@ -51,6 +51,7 @@ import os.path
 import numpy as np
 from time import sleep
 import cv2
+import time
 
 try:
 	from PyQt5.QtCore import Qt, QPoint, QRectF, QT_VERSION_STR
@@ -353,8 +354,43 @@ class MainWindow(inheritedMainWindow):
 		return
 
 	def newCameraFunction(self):
-		"""New function for camera."""
-		print( f"{self.appFileName}: newCameraFunction() new function for camera")
+		"""Get two different images from IDS camera and compute their difference."""
+		
+		if ueyeOK and self.camOn:
+
+			print(f"{self.appFileName}: newCameraFunction() try to capture the first image")
+			self.getOneImage()  
+			firstImage = self.npImage 
+   
+			time.sleep(10)
+   
+			print(f"{self.appFileName}: newCameraFunction() try to capture the second image")
+			self.getOneImage()  
+			secondImage = self.npImage  
+
+			if firstImage.shape == secondImage.shape:
+				differenceImage = np.abs(firstImage.astype(np.int16) - secondImage.astype(np.int16))
+				differenceImage = np.clip(differenceImage, 0, 255).astype(np.uint8)  
+				
+				differenceQImage = np2qimage(differenceImage)
+				
+				self.differencePixmap = QPixmap.fromImage(differenceQImage)
+				if self.curItem:
+					self.scene.removeItem(self.curItem)
+				self.curItem = QGraphicsPixmapItem(self.differencePixmap)
+				self.scene.addItem(self.curItem)
+				self.scene.setSceneRect(0, 0, self.differencePixmap.width(), self.differencePixmap.height())
+				self.setWindowTitle(f"{self.appFileName} : Difference Image")
+				(w, h) = (self.differencePixmap.width(), self.differencePixmap.height())
+				self.status.setText(f"Difference Image: (w,h) = ({w},{h})")
+				self.scaleOne()
+				self.view.setMouseTracking(True)
+			else:
+				print("The images have different sizes, cannot compute the difference.")
+		else:
+			print(f"{self.appFileName}: Camera is not on or ueyeOK is not set.")
+		
+		return
   
 	def blackDots(self):
 		"""Add black dots to image."""
