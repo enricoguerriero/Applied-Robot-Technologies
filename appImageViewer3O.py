@@ -39,6 +39,8 @@ except ImportError:
 
 from appImageViewer2O import myPath, MainWindow as inheritedMainWindow 
 from clsHoughCirclesDialog import HoughCirclesDialog
+from pyueye import ueye
+import tkinter as tk
 
 # define 17 colorNames as in: https://doc.qt.io/qt-5/qcolor.html 
 colorNames17 = ['white','black','cyan','darkCyan','red','darkRed','magenta','darkMagenta',
@@ -109,12 +111,16 @@ class MainWindow(inheritedMainWindow):
 		a = self.qaFindCircles = QAction( "Find circles", self)
 		a.triggered.connect(self.findCircles)
 		a.setToolTip("Find circles using cv2.HoughCircles(..)")
-		a = self.qaFindDices = QAction( "Find dices", self)
-		a.triggered.connect(self.findDices)
+		#a = self.qaFindDices = QAction( "Find dices", self)
+		#a.triggered.connect(self.findDices)
 		a.setToolTip("Find dices (TODO)")
 		a = self.qaFindEyes = QAction( "Find dice eyes", self)
 		a.triggered.connect(self.findEyes)
 		a.setToolTip("Find eyes for each dice (TODO)")
+		#
+		a = self.qaChangeOption = QAction( "Change camera option", self)
+		a.triggered.connect(self.changeOption)
+		a.setToolTip("Change camera option")
 		#
 		colorMenu = self.mainMenu.addMenu("Color")
 		colorMenu.addAction(self.qaCheck)
@@ -131,9 +137,10 @@ class MainWindow(inheritedMainWindow):
 		# 
 		diceMenu = self.mainMenu.addMenu("Dice")
 		diceMenu.addAction(self.qaFindCircles)
-		diceMenu.addAction(self.qaFindDices)
+		#diceMenu.addAction(self.qaFindDices)
 		diceMenu.addAction(self.qaFindEyes)
 		diceMenu.setToolTipsVisible(True)
+		diceMenu.addAction(self.qaChangeOption)
 		return
 	#end function initMenu3
 	
@@ -152,7 +159,7 @@ class MainWindow(inheritedMainWindow):
 		self.qaBestDistColorRGB.setEnabled(pixmapOK)
 		self.qaAttractColorRGB.setEnabled(pixmapOK)
 		self.qaFindCircles.setEnabled(pixmapOK)   # and self.isAllGray ?
-		self.qaFindDices.setEnabled(pixmapOK)   
+		#self.qaFindDices.setEnabled(pixmapOK)   
 		self.qaFindEyes.setEnabled(pixmapOK)   
 		return
 		
@@ -600,7 +607,43 @@ class MainWindow(inheritedMainWindow):
 		# Finally, print or indicate it on image how many eyes there are for each dice
 		#
 		return
+	
+	def changeOption(self):
+		# Creiamo una nuova finestra
+		settings_window = tk.Toplevel()
+		settings_window.title("Camera Settings")
 		
+		# Aggiungiamo i controlli per le impostazioni della camera
+		label = tk.Label(settings_window, text="Imposta esposizione (ms):")
+		label.pack(pady=10)
+		exposure_entry = tk.Entry(settings_window)
+		exposure_entry.pack(pady=10)
+
+		def apply_settings():
+			exposure_time = float(exposure_entry.get())
+			change_camera_settings(exposure_time)
+		
+		apply_button = tk.Button(settings_window, text="Applica", command=apply_settings)
+		apply_button.pack(pady=20)
+		
+		# Mostra la finestra
+		settings_window.mainloop()
+
+		def change_camera_settings():
+			# Inizializza l'handle della camera
+			h_cam = ueye.HIDS(0)
+			ueye.is_InitCamera(h_cam, None)
+
+			# Configura i parametri della camera
+			# Ad esempio, cambiamo l'esposizione
+			exposure_time = ueye.DOUBLE(30.0)  # tempo di esposizione in millisecondi
+			ueye.is_Exposure(h_cam, ueye.IS_EXPOSURE_CMD_SET_EXPOSURE, exposure_time, ueye.sizeof(exposure_time))
+
+			# Altre configurazioni possono essere aggiunte qui
+			
+			# Deinizializza la camera quando hai finito
+			ueye.is_ExitCamera(h_cam)
+
 #end class MainWindow
 
 if __name__ == '__main__':
