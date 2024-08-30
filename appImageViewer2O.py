@@ -221,6 +221,9 @@ class MainWindow(inheritedMainWindow):
 		a = self.qaCameraInfo = QAction('Print camera info', self)
 		a.triggered.connect(self.printCameraInfo)
 		#
+		a = self.qafindFocus = QAction('Find focus', self)
+		a.triggered.connect(self.findFocus)
+		#
 		a = self.qaGetOneImage = QAction('Get one image', self)
 		a.setShortcut('Ctrl+N')
 		a.triggered.connect(self.getOneImage)
@@ -249,6 +252,7 @@ class MainWindow(inheritedMainWindow):
 		camMenu = self.mainMenu.addMenu('&Camera')
 		camMenu.addAction(self.qaCameraOn)
 		camMenu.addAction(self.qaCameraInfo)
+		camMenu.addAction(self.qafindFocus)
 		camMenu.addAction(self.qaGetOneImage)
 		camMenu.addAction(self.qaGetOneImageV2)
 		camMenu.addAction(self.qaCameraOff)
@@ -272,6 +276,7 @@ class MainWindow(inheritedMainWindow):
 		# self.setMenuItems() 
 		self.qaCameraOn.setEnabled(ueyeOK and (not self.camOn))
 		self.qaCameraInfo.setEnabled(ueyeOK and self.camOn)
+		self.qafindFocus.setEnabled(ueyeOK and self.camOn)
 		self.qaGetOneImage.setEnabled(ueyeOK and self.camOn)
 		self.qaGetOneImageV2.setEnabled(ueyeOK and self.camOn)
 		self.qaCameraOff.setEnabled(ueyeOK and self.camOn)
@@ -404,7 +409,26 @@ class MainWindow(inheritedMainWindow):
 				print( f"  currently set exposure time            {float(d):8.3f} ms" )
 			#
 		return
+	
+	def findFocus(self):
+		"""Find focus"""
+   
+		#Convert image in grey scale
+		gray = cv2.cvtColor(self.npImage, cv2.COLOR_BGR2GRAY)
 		
+		#Variance on Laplacian filter
+		laplacian_var = cv2.Laplacian(gray, cv2.CV_64F).var()
+		
+		print(f"variance of the Laplacian filter: {laplacian_var}")
+		print("----------------------------------")
+		
+		for i in range(25):
+			self.getOneImage()
+			gray = cv2.cvtColor(self.npImage, cv2.COLOR_BGR2GRAY)
+			laplacian_var = cv2.Laplacian(gray, cv2.CV_64F).var()
+			print(f"variance of the Laplacian filter: {laplacian_var}")
+			print("-------------- Round "+str(i+1)+"--------------")
+				
 	def getOneImageV2(self):
 		"""Get one image from IDS camera, version 2, autumn 2022."""
 		if not(ueyeOK and self.camOn): 
