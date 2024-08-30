@@ -83,53 +83,53 @@ except ImportError:
 from appImageViewer1O import myPath, MainWindow as inheritedMainWindow 
 from myImageTools import np2qimage
 
-from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLabel, QVBoxLayout
-from PyQt5.QtGui import QImage, QPixmap
-from PyQt5.QtCore import QTimer, QThread, pyqtSignal, pyqtSlot
-from PyQt5 import QtWidgets, QtCore, QtGui
+# from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLabel, QVBoxLayout
+# from PyQt5.QtGui import QImage, QPixmap
+# from PyQt5.QtCore import QTimer, QThread, pyqtSignal, pyqtSlot
+# from PyQt5 import QtWidgets, QtCore, QtGui
 
-class Thread1(QThread):
-	changePixmap = pyqtSignal(QImage)
+# class Thread1(QThread):
+# 	changePixmap = pyqtSignal(QImage)
 	
-	def __init__(self, *args, **kwargs):
-		super().__init__()
+# 	def __init__(self, *args, **kwargs):
+# 		super().__init__()
 
-	def run(self):
-		self.cap1 = cv2.VideoCapture(0, cv2.CAP_DSHOW)
-		self.cap1.set(3,480)
-		self.cap1.set(4,640)
-		self.cap1.set(5,30)
-		while True:
-			ret1, image1 = self.cap1.read()
-			if ret1:
-				im1 = cv2.cvtColor(image1, cv2.COLOR_BGR2RGB)
-				height1, width1, channel1 = im1.shape
-				step1 = channel1 * width1
-				qImg1 = QImage(im1.data, width1, height1, step1, QImage.Format_RGB888)
-				self.changePixmap.emit(qImg1)
+# 	def run(self):
+# 		self.cap1 = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+# 		self.cap1.set(3,480)
+# 		self.cap1.set(4,640)
+# 		self.cap1.set(5,30)
+# 		while True:
+# 			ret1, image1 = self.cap1.read()
+# 			if ret1:
+# 				im1 = cv2.cvtColor(image1, cv2.COLOR_BGR2RGB)
+# 				height1, width1, channel1 = im1.shape
+# 				step1 = channel1 * width1
+# 				qImg1 = QImage(im1.data, width1, height1, step1, QImage.Format_RGB888)
+# 				self.changePixmap.emit(qImg1)
 
-class Thread2(QThread):
+# class Thread2(QThread):
 	
-	def __init__(self, *args, **kwargs):
-		super().__init__()
-		self.active = True
+# 	def __init__(self, *args, **kwargs):
+# 		super().__init__()
+# 		self.active = True
 
-	def run(self):
-		if self.active:            
-			self.fourcc = cv2.VideoWriter_fourcc(*'XVID') 
-			self.out1 = cv2.VideoWriter('output.avi', self.fourcc, 30, (640,480))
-			self.cap1 = cv2.VideoCapture(0, cv2.CAP_DSHOW)
-			self.cap1.set(3, 480)
-			self.cap1.set(4, 640)
-			self.cap1.set(5, 30)
-			while self.active:                      
-				ret1, image1 = self.cap1.read()
-				if ret1:
-					self.out1.write(image1)     
-				self.msleep(10)                      
+# 	def run(self):
+# 		if self.active:            
+# 			self.fourcc = cv2.VideoWriter_fourcc(*'XVID') 
+# 			self.out1 = cv2.VideoWriter('output.avi', self.fourcc, 30, (640,480))
+# 			self.cap1 = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+# 			self.cap1.set(3, 480)
+# 			self.cap1.set(4, 640)
+# 			self.cap1.set(5, 30)
+# 			while self.active:                      
+# 				ret1, image1 = self.cap1.read()
+# 				if ret1:
+# 					self.out1.write(image1)     
+# 				self.msleep(10)                      
 
-	def stop(self):
-		self.out1.release()
+# 	def stop(self):
+# 		self.out1.release()
 
 class MainWindow(inheritedMainWindow):  
 	"""MainWindow class for this image viewer is inherited from another image viewer."""
