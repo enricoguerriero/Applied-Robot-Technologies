@@ -57,7 +57,7 @@ import numpy as np
 
 try:
 	from clsThresholdDialog import ThresholdDialog
-	from PyQt5.QtCore import Qt, QPoint, QRectF, QT_VERSION_STR
+	from PyQt5.QtCore import Qt, QPoint, QRectF, QT_VERSION_STR, QTimer
 	from PyQt5.QtGui import QImage, QPixmap, QTransform
 	from PyQt5.QtWidgets import (QApplication, QMainWindow, QAction, QFileDialog, QLabel, 
 			QGraphicsScene, QGraphicsPixmapItem)
@@ -79,7 +79,7 @@ except ImportError:
 	# raise ImportError(ueye_error)
 	ueyeOK = False   # --> may run program even without pyueye
 #end try, import pyueye
-
+from datetime import datetime
 from appImageViewer1O import myPath, MainWindow as inheritedMainWindow 
 from myImageTools import np2qimage
 
@@ -201,6 +201,14 @@ class MainWindow(inheritedMainWindow):
 		# thus risking that the inherited (or the new ones) are not executed whenever they should be.
 		self.initMenu2()
 		self.setMenuItems2()
+  
+		self.initUI()
+		self.timer = QTimer()
+		self.timer.timeout.connect(self.take_picture)
+		self.is_taking_pictures = False
+		# self.initUI()
+		# self.cap = None
+		# self.timer = QTimer()
 		# print(f"File {_appFileName}: (debug) last line in MainWindow.__init__()")
 		return
 	
@@ -235,8 +243,8 @@ class MainWindow(inheritedMainWindow):
 		a = self.qaCountEyes = QAction('Count eyes', self)
 		a.triggered.connect(self.countEyes)			
 		#
-		a = self.qaVideoOn = QAction('Count eyes in video', self)
-		a.triggered.connect(self.videoOn)	
+		# a = self.qaVideoOn = QAction('Count eyes in video', self)
+		# a.triggered.connect(self.videoOn)	
 		#
 		camMenu = self.mainMenu.addMenu('&Camera')
 		camMenu.addAction(self.qaCameraOn)
@@ -250,7 +258,7 @@ class MainWindow(inheritedMainWindow):
 		diceMenu.addAction(self.qaBlackDots)
 		diceMenu.addAction(self.qaFindCircles)
 		diceMenu.addAction(self.qaCountEyes)
-		diceMenu.addAction(self.qaVideoOn)
+		# diceMenu.addAction(self.qaVideoOn)
 		return
 	
 # Some methods that may be used by several of the menu actions
@@ -268,6 +276,49 @@ class MainWindow(inheritedMainWindow):
 		self.qaGetOneImageV2.setEnabled(ueyeOK and self.camOn)
 		self.qaCameraOff.setEnabled(ueyeOK and self.camOn)
 		return
+	
+	def initUI(self):
+		self.setWindowTitle("Camera Capture")
+
+		# Central widget
+		self.central_widget = QWidget()
+		self.setCentralWidget(self.central_widget)
+
+		# Layout
+		self.layout = QVBoxLayout()
+		self.central_widget.setLayout(self.layout)
+
+		# Button to start/stop picture taking
+		self.button = QPushButton("Start Taking Pictures", self)
+		self.button.clicked.connect(self.toggle_taking_pictures)
+		self.layout.addWidget(self.button)
+
+		# Set the window dimensions
+		self.setGeometry(100, 100, 300, 200)
+
+	# def initUI(self):
+	# 	self.central_widget = QWidget()
+	# 	self.setCentralWidget(self.central_widget)
+	# 	self.layout = QVBoxLayout()
+
+	# 	self.btn_start_video = QPushButton("Start Video", self)
+	# 	self.btn_start_video.clicked.connect(self.start_video)
+
+	# 	self.btn_stop_video = QPushButton("Stop Video", self)
+	# 	self.btn_stop_video.clicked.connect(self.stop_video)
+	# 	self.btn_stop_video.setEnabled(False)
+
+	# 	self.label_video = QLabel(self)
+	# 	self.label_video.setFixedSize(640, 480)
+
+	# 	self.layout.addWidget(self.btn_start_video)
+	# 	self.layout.addWidget(self.btn_stop_video)
+	# 	self.layout.addWidget(self.label_video)
+		
+	# 	self.central_widget.setLayout(self.layout)
+
+	# 	self.setWindowTitle("Video Capture")
+	# 	self.setGeometry(100, 100, 800, 600)
 		
 	def copy_image(self, image_data):
 		"""Copy an image from camera memory to numpy image array 'self.npImage'."""
@@ -447,24 +498,24 @@ class MainWindow(inheritedMainWindow):
 			print( f"{self.appFileName}: cameraOff() Camera stopped ok" )
 		return
 
-	def videoOn(self):
-		start_time = time.time()
-		# Durata del timer in secondi
-		timer_duration = 20
-		elapsed_time = 0
-		# print("prova2")
-		# while elapsed_time <= timer_duration:
-		# 	elapsed_time = time.time() - start_time
-		# 	self.getOneImageV2()
-		# 	print("prova")
-		# 	time.sleep(5)
-		# 	#self.findCircles()
-		# 	#self.countEyes()
-		self.cam.capture_video()
-		time.sleep(5)
-		self.cam.stop_video()
-		print("ciao")
-		return
+	# def videoOn(self):
+	# 	start_time = time.time()
+	# 	# Durata del timer in secondi
+	# 	timer_duration = 20
+	# 	elapsed_time = 0
+	# 	# print("prova2")
+	# 	# while elapsed_time <= timer_duration:
+	# 	# 	elapsed_time = time.time() - start_time
+	# 	# 	self.getOneImageV2()
+	# 	# 	print("prova")
+	# 	# 	time.sleep(5)
+	# 	# 	#self.findCircles()
+	# 	# 	#self.countEyes()
+	# 	self.cam.capture_video()
+	# 	time.sleep(5)
+	# 	self.cam.stop_video()
+	# 	print("ciao")
+	# 	return
 
 	def newCameraFunction(self):
 		"""Get two different images from IDS camera and compute their difference."""
@@ -685,6 +736,79 @@ class MainWindow(inheritedMainWindow):
 	# 		self.th2.terminate()                    
 	# 		# update control_bt text
 	# 		self.control_bt.setText("START")
+ 
+	# def start_video(self):
+	# 	self.cap = cv2.VideoCapture(0)
+	# 	if not self.cap.isOpened():
+	# 		print("Error: Cannot open camera")
+	# 		return
+		
+	# 	self.btn_start_video.setEnabled(False)
+	# 	self.btn_stop_video.setEnabled(True)
+		
+	# 	# Set up the video writer if you want to save the video
+	# 	self.out = cv2.VideoWriter('output.avi', cv2.VideoWriter_fourcc(*'XVID'), 20.0, (640,480))
+
+	# 	# Use QTimer to display frames at regular intervals
+	# 	self.timer.timeout.connect(self.display_video_stream)
+	# 	self.timer.start(30)  # 30 ms intervals, about 33 FPS
+
+	# def display_video_stream(self):
+	# 	ret, frame = self.cap.read()
+	# 	if ret:
+	# 		# Write the frame to the video file
+	# 		self.out.write(frame)
+
+	# 		# Convert the frame to QImage for display
+	# 		height, width, channel = frame.shape
+	# 		bytes_per_line = 3 * width
+	# 		q_img = QImage(frame.data, width, height, bytes_per_line, QImage.Format_RGB888).rgbSwapped()
+
+	# 		# Display the frame in the QLabel
+	# 		self.label_video.setPixmap(QPixmap.fromImage(q_img))
+	# 	else:
+	# 		print("Error: Failed to capture video frame")
+
+	# def stop_video(self):
+	# 	self.timer.stop()
+	# 	self.cap.release()
+	# 	self.out.release()
+
+	# 	self.btn_start_video.setEnabled(True)
+	# 	self.btn_stop_video.setEnabled(False)
+
+	# 	self.label_video.clear()
+ 
+	def toggle_taking_pictures(self):
+		if self.is_taking_pictures:
+			self.stop_taking_pictures()
+		else:
+			self.start_taking_pictures()
+
+	def start_taking_pictures(self):
+		self.is_taking_pictures = True
+		self.button.setText("Stop Taking Pictures")
+		self.timer.start(1000)  # Take picture every second
+
+	def stop_taking_pictures(self):
+		self.is_taking_pictures = False
+		self.button.setText("Start Taking Pictures")
+		self.timer.stop()
+
+	def take_picture(self):
+		# Simulate taking a picture with a timestamp
+		timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+		filename = f"picture_{timestamp}.jpg"
+		# Here you would add the actual camera capture code
+		# For demonstration, we'll just print to console and simulate a picture file
+		print(f"Picture taken and saved as {filename}")
+
+		# Simulate saving a picture (in reality, you would capture from a camera)
+		with open(filename, 'w') as f:
+			f.write("This is a simulated picture.")  # Replace with actual image data
+
+		# Print confirmation
+		print(f"Saved: {filename}")
  
 				  
 #end class MainWindow
