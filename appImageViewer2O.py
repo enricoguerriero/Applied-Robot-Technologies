@@ -823,14 +823,32 @@ class MainWindow(inheritedMainWindow):
 		# Simulate taking a picture with a timestamp
 		timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 		filename = f"picture_{timestamp}.jpg"
+		directory = '.\imgvideo'
+		
+		filepath = os.path.join(directory, filename)
 		self.getOneImage()
 		print(f"Picture taken and saved as {filename}")
 
-		self.pixmap.save(filename, "JPG")
+		self.pixmap.save(filepath)
 
 		# Print confirmation
-		print(f"Saved: {filename}")
+		print(f"Saved: {filepath}")
  
+	def copilotfunction(self):
+		image_folder = 'images'
+		video_name = 'video.avi'
+
+		images = sorted(glob.glob(os.path.join(image_folder, '*.jpg')))
+		frame = cv2.imread(images[0])
+		height, width, layers = frame.shape
+
+		video = cv2.VideoWriter(video_name, cv2.VideoWriter_fourcc(*'DIVX'), 1, (width, height))
+
+		for image in images:
+			video.write(cv2.imread(image))
+
+		cv2.destroyAllWindows()
+		video.release()
 				  
 #end class MainWindow
 
