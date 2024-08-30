@@ -22,9 +22,12 @@ _version = "2022.06.27"
 
 import sys
 import os.path
+from turtle import pd
 #from math import hypot, pi, atan2, cos, sin    # sqrt, cos, sin, tan, log, ceil, floor 
 import numpy as np
 import cv2
+import pandas as pd
+
 
 try:
 	from PyQt5.QtCore import Qt, QPoint, QT_VERSION_STR  
@@ -100,6 +103,10 @@ class MainWindow(inheritedMainWindow):
 		a = self.qaAttractColorRGB = QAction( "Attract to closest RGB color", self)
 		a.triggered.connect(self.attractColorRGB)
 		a.setToolTip("Attract image to a custom RGB colors")
+  
+		a = self.qaFindYellow = QAction( "Find yellow dice", self)
+		a.triggered.connect(self.findYellow)
+		a.setToolTip("Find yellow dice")
 		#
 		a = self.qaFindCircles = QAction( "Find circles", self)
 		a.triggered.connect(self.findCircles)
@@ -125,6 +132,7 @@ class MainWindow(inheritedMainWindow):
 		colorMenu.addAction(self.qaDistColorRGB)
 		colorMenu.addAction(self.qaBestDistColorRGB)
 		colorMenu.addAction(self.qaAttractColorRGB)
+		colorMenu.addAction(self.qaFindYellow)
 		colorMenu.setToolTipsVisible(True)
 		# 
 		diceMenu = self.mainMenu.addMenu("Dice")
@@ -356,6 +364,58 @@ class MainWindow(inheritedMainWindow):
 			self.setWindowTitle(f"{self.appFileName} image after bestDistColorRGB()")
 			self.checkColor()
 		return
+
+	def identify_color(hsv_color, color_ranges):
+		for color_name, (lower, upper) in color_ranges.items():
+			if all(lower[i] <= hsv_color[i] <= upper[i] for i in range(3)):
+				return color_name
+		return 'Unknown'
+
+	def findYellow(self):
+		#hsv_image = cv2.cvtColor(self.npImage, cv2.COLOR_BGR2HSV)
+		color_ranges = {
+			'red': ((0, 100, 100), (10, 255, 255), 0),      # Intervallo per il rosso
+			'yellow': ((20, 100, 100), (30, 255, 255), 0),  # Intervallo per il giallo
+			'pink': ((160, 100, 100), (170, 255, 255), 0),  # Intervallo per il rosa
+		}
+		results = []
+
+		#for color_name, (lower, upper) in color_ranges.items():
+			#mask = cv2.inRange(hsv_image, np.array(lower), np.array(upper))
+			#contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+   
+			# Usa la funzione CountEyes per ottenere il valore del dado
+		self.findCircles()
+		#eyes_count = self.neyes
+		
+		for circle in self.circles:
+			valorex = circle[0]
+			valorey = circle[1]
+			raggio = circle[2]
+			#pixeldacampionare1 = (valorex + raggio*1.5, valorey)
+			#pixeldacampionare2 = (valorex, valorey + raggio*1.5)
+			print(valorex, valorey, raggio)
+			print(self.npImage.shape)
+			if valorex + round(raggio*1.1) < self.npImage.shape[1]:
+				color = self.npImage[valorey, valorex+ round(raggio*1.1)]
+			else: 
+				color = self.npImage[valorey, valorex- round(raggio*1.1)]
+
+			#color2 = self.npImage[valorex, valorey+ round(raggio*1.5)]
+   
+			# Converti il colore da BGR a HSV (se necessario)
+			#hsv_color = cv2.cvtColor(np.uint8([[color]]), cv2.COLOR_BGR2HSV)[0][0]
+   
+			for color_name in color_ranges.keys():
+				if color_ranges[color_name][0][0] < color[0] and color_ranges[color_name][1][0] > color[0] and color_ranges[color_name][0][1] < color[1] and color_ranges[color_name][1][1] > color[1] and color_ranges[color_name][0][2] < color[2] and color_ranges[color_name][1][2] > color[2]:
+					color_ranges[color_name][2] += 1
+					print("prova")
+
+		# Converti i risultati in un DataFrame per visualizzarli in tabella
+		#results_df = pd.DataFrame(color_ranges.keys(), color_ranges[2])
+		for colorname in color_ranges.keys():
+			print(f"{color_name} number of eyes: {color_ranges[color_name][2]}")
+		return
 		
 	def attractColorRGB(self):
 		"""Make image by assigning colors to closest of custom RGB colors."""
@@ -479,6 +539,7 @@ class MainWindow(inheritedMainWindow):
 		oldPixmap = self.prevPixmap  
 		self.prevPixmap = self.pixmap
 		self.A = np.array([])  
+		self.circles = []
 		self.prepareHoughCirclesA()  # make self.A
 		#find circles, note that HoughCirclesDialog is in another file: clsHoughCirclesDialog.py
 		d = HoughCirclesDialog(self, title="Select parameters that locate the dice eyes") 
@@ -494,6 +555,7 @@ class MainWindow(inheritedMainWindow):
 				self.neyes = C.shape[1]
 				for i in range(min(maxCircles, C.shape[1])):
 					(x,y,r) = ( C[0,i,0], C[0,i,1], C[0,i,2] )  # center and radius
+					self.circles.append((x,y,r))
 					# cv2.circle(self.B, (x,y), 1, (0, 100, 100), 3)  # indicate center 
 					cv2.circle(self.B, (x,y), r, (255, 0, 255), 3) # and circle outline 
 				#end for

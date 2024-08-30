@@ -812,7 +812,7 @@ class MainWindow(inheritedMainWindow):
 	def start_taking_pictures(self):
 		self.is_taking_pictures = True
 		self.button.setText("Stop Taking Pictures")
-		self.timer.start(1000)  # Take picture every second
+		self.timer.start(1000)  
 
 	def stop_taking_pictures(self):
 		self.is_taking_pictures = False
@@ -823,13 +823,10 @@ class MainWindow(inheritedMainWindow):
 		# Simulate taking a picture with a timestamp
 		timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 		filename = f"picture_{timestamp}.jpg"
-		# Here you would add the actual camera capture code
-		# For demonstration, we'll just print to console and simulate a picture file
+		self.getOneImage()
 		print(f"Picture taken and saved as {filename}")
 
-		# Simulate saving a picture (in reality, you would capture from a camera)
-		with open(filename, 'w') as f:
-			f.write("This is a simulated picture.")  # Replace with actual image data
+		self.pixmap.save(filename, "JPG")
 
 		# Print confirmation
 		print(f"Saved: {filename}")
