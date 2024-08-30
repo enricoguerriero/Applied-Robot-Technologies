@@ -202,7 +202,7 @@ class MainWindow(inheritedMainWindow):
 		self.initMenu2()
 		self.setMenuItems2()
   
-		self.initUI()
+		#self.initUI()
 		self.timer = QTimer()
 		self.timer.timeout.connect(self.take_picture)
 		self.is_taking_pictures = False
