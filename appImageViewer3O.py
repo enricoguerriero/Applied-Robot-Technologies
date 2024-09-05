@@ -40,7 +40,7 @@ except ImportError:
 from appImageViewer2O import myPath, MainWindow as inheritedMainWindow 
 from clsHoughCirclesDialog import HoughCirclesDialog
 from pyueye import ueye
-import tkinter as tk
+# import tkinter as tk
 
 # define 17 colorNames as in: https://doc.qt.io/qt-5/qcolor.html 
 colorNames17 = ['white','black','cyan','darkCyan','red','darkRed','magenta','darkMagenta',
@@ -419,13 +419,34 @@ class MainWindow(inheritedMainWindow):
 			
 		cv2.destroyAllWindows()
 
+	def increase_saturation_single_pixel(self, pixel, increment_value):
+		# Convert the single RGB pixel to a 1x1x3 image
+		pixel_image = np.array([[pixel]], dtype=np.uint8)
+
+		# Convert the pixel from RGB to HLS color space
+		hls_pixel = cv2.cvtColor(pixel_image, cv2.COLOR_RGB2HLS)
+
+		# Extract H, L, S values from the HLS representation
+		h, l, s = hls_pixel[0, 0]
+
+		# Increase saturation by the increment value, while making sure it stays within [0, 255]
+		s = np.clip(s + increment_value, 0, 255)
+
+		# Merge the H, L, S values back
+		hls_pixel[0, 0] = [h, l, s]
+
+		# Convert the pixel back to RGB
+		rgb_pixel = cv2.cvtColor(hls_pixel, cv2.COLOR_HLS2RGB)
+
+		return rgb_pixel[0, 0]
+
 	def findYellow(self):
 		#hsv_image = cv2.cvtColor(self.npImage, cv2.COLOR_BGR2HSV)
-		color_ranges = {
-			#'red': ((0, 0, 0), (255, 255, 255), 0),      # Intervallo per il rosso
-			'yellow': ((0, 0, 0), (255, 255, 255), 0),  # Intervallo per il giallo
-			'pink': ((160, 100, 100), (170, 255, 255), 0),  # Intervallo per il rosa
-		}
+		# color_ranges = {
+		# 	#'red': ((0, 0, 0), (255, 255, 255), 0),      # Intervallo per il rosso
+		# 	'yellow': ((0, 0, 0), (255, 255, 255), 0),  # Intervallo per il giallo
+		# 	'pink': ((160, 100, 100), (170, 255, 255), 0),  # Intervallo per il rosa
+		# }
 		# results = []
 
 		#for color_name, (lower, upper) in color_ranges.items():
@@ -444,41 +465,70 @@ class MainWindow(inheritedMainWindow):
 			#pixeldacampionare2 = (valorex, valorey + raggio*1.5)
 			print(valorex, valorey, raggio)
 			print(self.npImage.shape)
-			if valorex + round(raggio*1.1) < self.npImage.shape[1]:
-				color = self.npImage[valorey, valorex + round(raggio*1.1)]
-			elif valorey + round(raggio*1.1) < self.npImage.shape[1]: 
-				color = self.npImage[valorey + round(raggio*1.1), valorex ]
-			elif valorex - round(raggio*1.1) < self.npImage.shape[1]:
-				color = self.npImage[valorey, valorex - round(raggio*1.1)]
+			if valorex + round(raggio*1.2) < self.npImage.shape[1]:
+				color = self.npImage[valorey, valorex + round(raggio*1.2)]
+			elif valorey + round(raggio*1.2) < self.npImage.shape[1]: 
+				color = self.npImage[valorey + round(raggio*1.2), valorex ]
+			elif valorex - round(raggio*1.2) < self.npImage.shape[1]:
+				color = self.npImage[valorey, valorex - round(raggio*1.2)]
 			else:
-				color = self.npImage[valorey - round(raggio*1.1), valorex]
+				color = self.npImage[valorey - round(raggio*1.2), valorex]
 
 			#color2 = self.npImage[valorex, valorey+ round(raggio*1.5)]
    
 			# Converti il colore da BGR a HSV (se necessario)
 			#hsv_color = cv2.cvtColor(np.uint8([[color]]), cv2.COLOR_BGR2HSV)[0][0]
    
-			for color_name in color_ranges.keys():
-				if color_ranges[color_name][0][0] < color[0] and color_ranges[color_name][1][0] > color[0] and color_ranges[color_name][0][1] < color[1] and color_ranges[color_name][1][1] > color[1] and color_ranges[color_name][0][2] < color[2] and color_ranges[color_name][1][2] > color[2]:
-					#color_ranges[color_name][2] += 1
-					# Estrai il tuple associato al colore 'red'
-					current_tuple = color_ranges[color_name]
+			# for color_name in color_ranges.keys():
+			# 	if color_ranges[color_name][0][0] < color[0] and color_ranges[color_name][1][0] > color[0] and color_ranges[color_name][0][1] < color[1] and color_ranges[color_name][1][1] > color[1] and color_ranges[color_name][0][2] < color[2] and color_ranges[color_name][1][2] > color[2]:
+			# 		#color_ranges[color_name][2] += 1
+			# 		# Estrai il tuple associato al colore 'red'
+			# 		current_tuple = color_ranges[color_name]
 
-					# Converti il tuple in una lista per poterlo modificare
-					current_list = list(current_tuple)
+			# 		# Converti il tuple in una lista per poterlo modificare
+			# 		current_list = list(current_tuple)
 
-					# Incrementa il terzo valore (indice 2) di 1
-					current_list[2] += 1
+			# 		# Incrementa il terzo valore (indice 2) di 1
+			# 		current_list[2] += 1
 
-					# Riconverti la lista in un tuple e aggiorna il dizionario
-					color_ranges[color_name] = tuple(current_list)
-					#print("prova")
+			# 		# Riconverti la lista in un tuple e aggiorna il dizionario
+			# 		color_ranges[color_name] = tuple(current_list)
+			# 		#print("prova")
 
+			R = color[0]
+			G = color[1]
+			B = color[2]
+			print("\nCOLOR : ", R, G, B)
+			R, G, B = self.increase_saturation_single_pixel((R, G, B), 50)
+			print("\nNEW COLOR : ", R, G, B)
+
+			G = np.int16(G)
+			B = np.int16(B)
+			R = np.int16(R)
+
+
+			if abs(G - B) < 50 and max(G, B) < 50 + R:
+				print("RED DICE")
+			elif R > 50 + G and G > 50 + B:
+				print("ORANGE DICE")
+			elif abs(R - G) < 50 and min(R, G) > 50 + B:
+				print("YELLOW DICE")
+			elif G > 50 + max(R, B):
+				print("GREEN DICE")
+			elif B > 50 + max(R, G) and abs(R - G) < 50:
+				print("BLUE DICE")
+			elif B > 50 + R and R > 50 + G:
+				print("PURPLE DICE")
+			elif B - R < 50 and B > 50 + G:
+				print("PINK DICE")
+			else:
+				print("GRAY DICE")
+		return
 		# Converti i risultati in un DataFrame per visualizzarli in tabella
 		#results_df = pd.DataFrame(color_ranges.keys(), color_ranges[2])
-		for colorname in color_ranges.keys():
-			print(f"{colorname} number of eyes: {color_ranges[colorname][2]}")
-		return
+		# for colorname in color_ranges.keys():
+		# 	print(f"{colorname} number of eyes: {color_ranges[colorname][2]}")
+		# return
 		
 	def attractColorRGB(self):
 		"""Make image by assigning colors to closest of custom RGB colors."""
