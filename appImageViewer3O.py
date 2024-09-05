@@ -374,8 +374,8 @@ class MainWindow(inheritedMainWindow):
 	def findYellow(self):
 		#hsv_image = cv2.cvtColor(self.npImage, cv2.COLOR_BGR2HSV)
 		color_ranges = {
-			'red': ((0, 100, 100), (10, 255, 255), 0),      # Intervallo per il rosso
-			'yellow': ((20, 100, 100), (30, 255, 255), 0),  # Intervallo per il giallo
+			#'red': ((0, 0, 0), (255, 255, 255), 0),      # Intervallo per il rosso
+			'yellow': ((0, 0, 0), (255, 255, 255), 0),  # Intervallo per il giallo
 			'pink': ((160, 100, 100), (170, 255, 255), 0),  # Intervallo per il rosa
 		}
 		results = []
@@ -397,9 +397,13 @@ class MainWindow(inheritedMainWindow):
 			print(valorex, valorey, raggio)
 			print(self.npImage.shape)
 			if valorex + round(raggio*1.1) < self.npImage.shape[1]:
-				color = self.npImage[valorey, valorex+ round(raggio*1.1)]
-			else: 
-				color = self.npImage[valorey, valorex- round(raggio*1.1)]
+				color = self.npImage[valorey, valorex + round(raggio*1.1)]
+			elif valorey + round(raggio*1.1) < self.npImage.shape[1]: 
+				color = self.npImage[valorey + round(raggio*1.1), valorex ]
+			elif valorex - round(raggio*1.1) < self.npImage.shape[1]:
+				color = self.npImage[valorey, valorex - round(raggio*1.1)]
+			else:
+				color = self.npImage[valorey - round(raggio*1.1), valorex]
 
 			#color2 = self.npImage[valorex, valorey+ round(raggio*1.5)]
    
@@ -408,13 +412,24 @@ class MainWindow(inheritedMainWindow):
    
 			for color_name in color_ranges.keys():
 				if color_ranges[color_name][0][0] < color[0] and color_ranges[color_name][1][0] > color[0] and color_ranges[color_name][0][1] < color[1] and color_ranges[color_name][1][1] > color[1] and color_ranges[color_name][0][2] < color[2] and color_ranges[color_name][1][2] > color[2]:
-					color_ranges[color_name][2] += 1
-					print("prova")
+					#color_ranges[color_name][2] += 1
+					# Estrai il tuple associato al colore 'red'
+					current_tuple = color_ranges[color_name]
+
+					# Converti il tuple in una lista per poterlo modificare
+					current_list = list(current_tuple)
+
+					# Incrementa il terzo valore (indice 2) di 1
+					current_list[2] += 1
+
+					# Riconverti la lista in un tuple e aggiorna il dizionario
+					color_ranges[color_name] = tuple(current_list)
+					#print("prova")
 
 		# Converti i risultati in un DataFrame per visualizzarli in tabella
 		#results_df = pd.DataFrame(color_ranges.keys(), color_ranges[2])
 		for colorname in color_ranges.keys():
-			print(f"{color_name} number of eyes: {color_ranges[color_name][2]}")
+			print(f"{colorname} number of eyes: {color_ranges[colorname][2]}")
 		return
 		
 	def attractColorRGB(self):
