@@ -22,7 +22,7 @@ _version = "2022.06.27"
 
 import sys
 import os.path
-from turtle import pd
+# from turtle import pd
 #from math import hypot, pi, atan2, cos, sin    # sqrt, cos, sin, tan, log, ceil, floor 
 import numpy as np
 import cv2
@@ -115,6 +115,8 @@ class MainWindow(inheritedMainWindow):
 		a = self.qaFindEyes = QAction( "Find dice eyes", self)
 		a.triggered.connect(self.findEyes)
 		a.setToolTip("Find eyes for each dice (TODO)")
+		a = self.qaColorDetection = QAction( "Color detection", self)
+		a.triggered.connect(self.ColorDetection)
 		#
 		colorMenu = self.mainMenu.addMenu("Color")
 		colorMenu.addAction(self.qaCheck)
@@ -134,6 +136,7 @@ class MainWindow(inheritedMainWindow):
 		diceMenu.addAction(self.qaFindDices)
 		diceMenu.addAction(self.qaFindEyes)
 		diceMenu.setToolTipsVisible(True)
+		diceMenu.addAction(self.qaColorDetection)
 		return
 	#end function initMenu3
 	
@@ -151,7 +154,7 @@ class MainWindow(inheritedMainWindow):
 		self.qaDistColorRGB.setEnabled(pixmapOK)
 		self.qaBestDistColorRGB.setEnabled(pixmapOK)
 		self.qaAttractColorRGB.setEnabled(pixmapOK)
-		self.qaFindCircles.setEnabled(pixmapOK)   # and self.isAllGray ?
+		self.qaFindCircles.setEnabled(pixmapOK)  
 		self.qaFindDices.setEnabled(pixmapOK)   
 		self.qaFindEyes.setEnabled(pixmapOK)   
 		return
@@ -363,15 +366,69 @@ class MainWindow(inheritedMainWindow):
 			if all(lower[i] <= hsv_color[i] <= upper[i] for i in range(3)):
 				return color_name
 		return 'Unknown'
+ 
+	def get_Color_Name(self,R,G,B, csv):
+  
+		minimum = 10000
+		for i in range(len(csv)):
+			d = abs(R- int(csv.loc[i,"R"])) + abs(G-int(csv.loc[i,"G"]))+ abs(B- int(csv.loc[i,"B"]))
+			if(d<=minimum):
+				minimum = d
+				cname = csv.loc[i,"color_name"]
+    
+		return cname
+
+	def draw_function(self, event, x,y,flags,param):
+		if event == cv2.EVENT_LBUTTONDBLCLK:
+			global b,g,r,xpos,ypos, clicked
+			clicked = True
+			xpos = x
+			ypos = y
+			b,g,r = self.npImage[y,x]
+			b = int(b)
+			g = int(g)
+			r = int(r)
+   
+	def ColorDetection(self):
+    # https://www.kaggle.com/code/mohammedlahsaini/color-detection-using-opencv
+     
+		index=["color","color_name","hex","R","G","B"]
+		csv = pd.read_csv('../colors.csv', names=index, header=None)
+  
+		while(1):
+    
+			cv2.imshow("color detection",self.npImage)
+			if (clicked):
+				#cv2.rectangle(image, startpoint, endpoint, color, thickness)-1 fills entire rectangle 
+				cv2.rectangle(self.npImage,(20,20), (750,60), (b,g,r), -1)
+				color_name = self.getColorName(r,g,b, csv) + ' R='+ str(r) +  ' G='+ str(g) +  ' B='+ str(b)
+				#cv2.putText(img,text,start,font(0-7),fontScale,color,thickness,lineType )
+				cv2.putText(self.npImage, color_name,(50,50),2,0.8,(255,255,255),2,cv2.LINE_AA)
+				#For very light colours we will display text in black colour
+				if(r+g+b>=600):
+					cv2.putText(self.npImage, color_name,(50,50),2,0.8,(0,0,0),2,cv2.LINE_AA)
+					
+				clicked=False
+			#when user hit esc
+			if cv2.waitKey(20) & 0xFF ==27:
+				break
+			
+		cv2.destroyAllWindows()
 
 	def findYellow(self):
 		#hsv_image = cv2.cvtColor(self.npImage, cv2.COLOR_BGR2HSV)
 		color_ranges = {
-			'red': ((0, 100, 100), (10, 255, 255), 0),      # Intervallo per il rosso
-			'yellow': ((20, 100, 100), (30, 255, 255), 0),  # Intervallo per il giallo
-			'pink': ((160, 100, 100), (170, 255, 255), 0),  # Intervallo per il rosa
+			'Red': [(150, 0, 0), (255, 100, 100), 0],
+			'Green': [(0, 150, 0), (100, 255, 100), 0],
+			'Blue': [(0, 0, 150), (100, 100, 255), 0],
+			'Yellow': [(150, 150, 0), (255, 255, 100), 0],
+			'Cyan': [(0, 150, 150), (100, 255, 255), 0],
+			'Magenta': [(150, 0, 150), (255, 100, 255), 0],
+			'Black': [(0, 0, 0), (50, 50, 50), 0],
+			'White': [(200, 200, 200), (255, 255, 255), 0],
+			'Gray': [(100, 100, 100), (200, 200, 200), 0],
 		}
-		results = []
+		# results = []
 
 		#for color_name, (lower, upper) in color_ranges.items():
 			#mask = cv2.inRange(hsv_image, np.array(lower), np.array(upper))
@@ -406,7 +463,7 @@ class MainWindow(inheritedMainWindow):
 
 		# Converti i risultati in un DataFrame per visualizzarli in tabella
 		#results_df = pd.DataFrame(color_ranges.keys(), color_ranges[2])
-		for colorname in color_ranges.keys():
+		for color_name in color_ranges.keys():
 			print(f"{color_name} number of eyes: {color_ranges[color_name][2]}")
 		return
 		
