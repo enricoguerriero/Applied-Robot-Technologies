@@ -39,6 +39,7 @@ except ImportError:
 
 from appImageViewer2O import myPath, MainWindow as inheritedMainWindow 
 from clsHoughCirclesDialog import HoughCirclesDialog
+from clsSaturationDialog_O import SaturationDialog
 from pyueye import ueye
 # import tkinter as tk
 
@@ -118,9 +119,18 @@ class MainWindow(inheritedMainWindow):
 		a.triggered.connect(self.findEyes)
 		a.setToolTip("Find eyes for each dice (TODO)")
 		#
-		a = self.qaChangeOption = QAction( "Change camera option", self)
-		a.triggered.connect(self.changeOption)
-		a.setToolTip("Change camera option")
+		# a = self.qaChangeOption = QAction( "Change camera option", self)
+		# a.triggered.connect(self.apply_saturation)
+		# a.setToolTip("Change camera option")
+		#
+		# a = self.qacolorcorrect = QAction( "Color Correction", self)
+		# a.triggered.connect(self.apply_color_correction)
+		# #
+		# a = self.removecolorcorrection = QAction( "Remove Color Correction", self)
+		# a.triggered.connect(self.delete_color_correction)
+		#
+		a = self.qasetsaturation = QAction( "Set Saturation", self)
+		a.triggered.connect(self.set_saturation)
 		#
 		colorMenu = self.mainMenu.addMenu("Color")
 		colorMenu.addAction(self.qaCheck)
@@ -140,7 +150,10 @@ class MainWindow(inheritedMainWindow):
 		#diceMenu.addAction(self.qaFindDices)
 		diceMenu.addAction(self.qaFindEyes)
 		diceMenu.setToolTipsVisible(True)
-		diceMenu.addAction(self.qaChangeOption)
+		# diceMenu.addAction(self.qacolorcorrect)
+		# diceMenu.addAction(self.removecolorcorrection)
+		diceMenu.addAction(self.qasetsaturation)
+		# diceMenu.addAction(self.qaChangeOption)
 		return
 	#end function initMenu3
 	
@@ -379,7 +392,7 @@ class MainWindow(inheritedMainWindow):
 			if(d<=minimum):
 				minimum = d
 				cname = csv.loc[i,"color_name"]
-    
+	
 		return cname
 
 	def draw_function(self, event, x,y,flags,param):
@@ -394,13 +407,13 @@ class MainWindow(inheritedMainWindow):
 			r = int(r)
    
 	def ColorDetection(self):
-    # https://www.kaggle.com/code/mohammedlahsaini/color-detection-using-opencv
-     
+	# https://www.kaggle.com/code/mohammedlahsaini/color-detection-using-opencv
+	 
 		index=["color","color_name","hex","R","G","B"]
 		csv = pd.read_csv('../colors.csv', names=index, header=None)
   
 		while(1):
-    
+	
 			cv2.imshow("color detection",self.npImage)
 			if (clicked):
 				#cv2.rectangle(image, startpoint, endpoint, color, thickness)-1 fills entire rectangle 
@@ -456,6 +469,17 @@ class MainWindow(inheritedMainWindow):
 			# Usa la funzione CountEyes per ottenere il valore del dado
 		self.findCircles()
 		#eyes_count = self.neyes
+
+		col_dict = {
+			"red" : 0,
+			"orange" : 0,	
+			"yellow" : 0,
+			"green" : 0,	
+			"blue" : 0,
+			"purple" : 0,
+			"pink" : 0,
+			"gray" : 0
+		}
 		
 		for circle in self.circles:
 			valorex = circle[0]
@@ -495,9 +519,9 @@ class MainWindow(inheritedMainWindow):
 			# 		color_ranges[color_name] = tuple(current_list)
 			# 		#print("prova")
 
-			R = color[0]
+			R = color[2]
 			G = color[1]
-			B = color[2]
+			B = color[0]
 			print("\nCOLOR : ", R, G, B)
 			R, G, B = self.increase_saturation_single_pixel((R, G, B), 50)
 			print("\nNEW COLOR : ", R, G, B)
@@ -507,22 +531,36 @@ class MainWindow(inheritedMainWindow):
 			R = np.int16(R)
 
 
-			if abs(G - B) < 50 and max(G, B) < 50 + R:
-				print("RED DICE")
-			elif R > 50 + G and G > 50 + B:
+			if R > 50 + G and G > 50 + B:
+				c = "orange"
 				print("ORANGE DICE")
+			elif abs(G - B) < 50 and max(G, B) < 50 + R:
+				c = "red"
+				print("RED DICE")
 			elif abs(R - G) < 50 and min(R, G) > 50 + B:
+				c = "yellow"
 				print("YELLOW DICE")
 			elif G > 50 + max(R, B):
+				c = "green"
 				print("GREEN DICE")
 			elif B > 50 + max(R, G) and abs(R - G) < 50:
+				c = "blue"
 				print("BLUE DICE")
 			elif B > 50 + R and R > 50 + G:
+				c = "purple"
 				print("PURPLE DICE")
 			elif B - R < 50 and B > 50 + G:
+				c = "pink"
 				print("PINK DICE")
 			else:
+				c = "gray"
 				print("GRAY DICE")
+			col_dict[c] += 1
+		print(col_dict)
+		print("\n REAL OUTPUT : \n")
+		for key in col_dict:
+			if col_dict[key] > 0:
+				print(key, " dice shows ", col_dict[key], " eyes")
 		return
 		# Converti i risultati in un DataFrame per visualizzarli in tabella
 		#results_df = pd.DataFrame(color_ranges.keys(), color_ranges[2])
@@ -720,42 +758,98 @@ class MainWindow(inheritedMainWindow):
 		# Finally, print or indicate it on image how many eyes there are for each dice
 		#
 		return
+
+	# def update_saturation(self, value):
+	# 	"""This method gets called when the slider value changes"""
+	# 	self.saturation_value = value
+	# 	print(f"New saturation value: {value}")
+
+	# def apply_color_correction(self):
+	# 	"""Apply the saturation value to the camera"""
+	# 	SATURATION_FACTOR = 1
+	# 	color_correction = ueye.IS_CCOR_ENABLE_NORMAL
+	# 	result = ueye.is_SetColorCorrection(self.cam, color_correction, SATURATION_FACTOR)
+	# 	if result == ueye.IS_SUCCESS:
+	# 		print("Color correction applied")
+	# 	else:
+	# 		print("Color correction failed")
 	
-	def changeOption(self):
-		# Creiamo una nuova finestra
-		settings_window = tk.Toplevel()
-		settings_window.title("Camera Settings")
+	# def delete_color_correction(self):
+	# 	"""Delete the color correction from the camera"""
+	# 	color_correction = ueye.IS_CCOR_DISABLE
+	# 	result = ueye.is_SetColorCorrection(self.cam, color_correction, 0)
+	# 	if result == ueye.IS_SUCCESS:
+	# 		print("Color correction deleted")
+	# 	else:
+	# 		print("Color correction deletion failed")
+   
+	def change_saturation(self, saturation_factor):
+		saturation_factor = ueye.c_int(round(saturation_factor))
+		print(saturation_factor)
+		result = ueye.is_SetSaturation(ueye.HIDS(0), saturation_factor, saturation_factor)
+		if result == ueye.IS_SUCCESS:
+			print("Saturation changed")
+		else:	
+			print("Saturation change failed")
+	
+	def set_saturation(self):
+		d = SaturationDialog(self)
+		saturation_index = d.getValues()
+		if d.result():
+			minim = max(ueye.IS_MIN_SATURATION_U, ueye.IS_MIN_SATURATION_V)
+			maxim = min(ueye.IS_MAX_SATURATION_U, ueye.IS_MAX_SATURATION_V)
+			print(ueye.IS_MIN_SATURATION_U, ueye.IS_MIN_SATURATION_V)
+			print(ueye.IS_MAX_SATURATION_U, ueye.IS_MAX_SATURATION_V)
+			print(minim, maxim)
+			if saturation_index == 1:
+				saturation_factor = minim
+			elif saturation_index == 2:
+				saturation_factor = (maxim-minim)*1/4 + minim
+			elif saturation_index == 3:	
+				saturation_factor = (maxim-minim)*2/4 + minim
+			elif saturation_index == 4:
+				saturation_factor = (maxim-minim)*3/4 + minim
+			elif saturation_index == 5:
+				saturation_factor = maxim
+			self.change_saturation(saturation_factor)
+		pass
+	
+	
+	# def changeOption(self):
+	# 	# Creiamo una nuova finestra
+	# 	settings_window = tk.Toplevel()
+	# 	settings_window.title("Camera Settings")
 		
-		# Aggiungiamo i controlli per le impostazioni della camera
-		label = tk.Label(settings_window, text="Imposta esposizione (ms):")
-		label.pack(pady=10)
-		exposure_entry = tk.Entry(settings_window)
-		exposure_entry.pack(pady=10)
+	# 	# Aggiungiamo i controlli per le impostazioni della camera
+	# 	label = tk.Label(settings_window, text="Imposta esposizione (ms):")
+	# 	label.pack(pady=10)
+	# 	exposure_entry = tk.Entry(settings_window)
+	# 	exposure_entry.pack(pady=10)
 
-		def apply_settings():
-			exposure_time = float(exposure_entry.get())
-			change_camera_settings(exposure_time)
+	# 	def apply_settings():
+	# 		exposure_time = float(exposure_entry.get())
+	# 		change_camera_settings(exposure_time)
 		
-		apply_button = tk.Button(settings_window, text="Applica", command=apply_settings)
-		apply_button.pack(pady=20)
+	# 	apply_button = tk.Button(settings_window, text="Applica", command=apply_settings)
+	# 	apply_button.pack(pady=20)
 		
-		# Mostra la finestra
-		settings_window.mainloop()
+	# 	# Mostra la finestra
+	# 	settings_window.mainloop()
 
-		def change_camera_settings():
-			# Inizializza l'handle della camera
-			h_cam = ueye.HIDS(0)
-			ueye.is_InitCamera(h_cam, None)
+	# 	def change_camera_settings():
+	# 		# Inizializza l'handle della camera
+	# 		h_cam = ueye.HIDS(0)
+	# 		ueye.is_InitCamera(h_cam, None)
 
-			# Configura i parametri della camera
-			# Ad esempio, cambiamo l'esposizione
-			exposure_time = ueye.DOUBLE(30.0)  # tempo di esposizione in millisecondi
-			ueye.is_Exposure(h_cam, ueye.IS_EXPOSURE_CMD_SET_EXPOSURE, exposure_time, ueye.sizeof(exposure_time))
+	# 		# Configura i parametri della camera
+	# 		# Ad esempio, cambiamo l'esposizione
+	# 		exposure_time = ueye.DOUBLE(30.0)  # tempo di esposizione in millisecondi
+	# 		ueye.is_Exposure(h_cam, ueye.IS_EXPOSURE_CMD_SET_EXPOSURE, exposure_time, ueye.sizeof(exposure_time))
 
-			# Altre configurazioni possono essere aggiunte qui
+	# 		# Altre configurazioni possono essere aggiunte qui
 			
-			# Deinizializza la camera quando hai finito
-			ueye.is_ExitCamera(h_cam)
+	# 		# Deinizializza la camera quando hai finito
+	# 		ueye.is_ExitCamera(h_cam)
 
 #end class MainWindow
 

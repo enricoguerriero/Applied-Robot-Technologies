@@ -60,7 +60,7 @@ try:
 	from PyQt5.QtCore import Qt, QPoint, QRectF, QT_VERSION_STR, QTimer
 	from PyQt5.QtGui import QImage, QPixmap, QTransform
 	from PyQt5.QtWidgets import (QApplication, QMainWindow, QAction, QFileDialog, QLabel, 
-			QGraphicsScene, QGraphicsPixmapItem)
+			QGraphicsScene, QGraphicsPixmapItem, QSlider)
 	from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QPushButton, QWidget
 	from PyQt5.QtMultimedia import QCamera, QMediaRecorder
 	from PyQt5.QtMultimediaWidgets import QCameraViewfinder
@@ -370,6 +370,14 @@ class MainWindow(inheritedMainWindow):
 			self.camOn = True
 			self.setMenuItems2()
 			print( f"{self.appFileName}: cameraOn() Camera started ok" )
+			# # Saturation slider
+			# self.saturation_slider = QSlider(self)
+			# self.saturation_slider.setOrientation(Qt.Horizontal)
+			# self.saturation_slider.setMinimum(0)
+			# self.saturation_slider.setMaximum(200)
+			# self.saturation_slider.setValue(100)  # Default saturation value
+			# self.saturation_slider.valueChanged.connect(self.update_saturation)
+			# print("Saturation slider created")
 		#
 		return
 	
@@ -921,7 +929,7 @@ class MainWindow(inheritedMainWindow):
 
 	def closeEvent(self, event):
 		"""Properly exit the camera when the window is closed."""
-		self.camera.exit()
+		self.cam.exit()
 		super().closeEvent(event)
  
 				  
