@@ -60,7 +60,7 @@ try:
 	from PyQt5.QtCore import Qt, QPoint, QRectF, QT_VERSION_STR, QTimer
 	from PyQt5.QtGui import QImage, QPixmap, QTransform
 	from PyQt5.QtWidgets import (QApplication, QMainWindow, QAction, QFileDialog, QLabel, 
-			QGraphicsScene, QGraphicsPixmapItem, QSlider)
+			QGraphicsScene, QGraphicsPixmapItem)
 	from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QPushButton, QWidget
 	from PyQt5.QtMultimedia import QCamera, QMediaRecorder
 	from PyQt5.QtMultimediaWidgets import QCameraViewfinder
@@ -150,16 +150,6 @@ class MainWindow(inheritedMainWindow):
 		# 
 		self.cam = None
 		self.camOn = False
-  
-		# Initialize variables for image sequence and folder
-		self.image_sequence = []
-		self.capture_timer = QTimer(self)
-		self.capture_images = False  # To check if the image capture process is active
-		self.image_folder = "captured_images"
-
-		# Create directory for saving images if it doesn't exist
-		if not os.path.exists(self.image_folder):
-			os.makedirs(self.image_folder)
 
 		# # sof
 		# self.control_bt = QPushButton('START')
@@ -212,10 +202,10 @@ class MainWindow(inheritedMainWindow):
 		self.initMenu2()
 		self.setMenuItems2()
   
-		# self.initUI()
-		# self.timer = QTimer()
-		# self.timer.timeout.connect(self.take_picture)
-		# self.is_taking_pictures = False
+		#self.initUI()
+		self.timer = QTimer()
+		self.timer.timeout.connect(self.take_picture)
+		self.is_taking_pictures = False
 		# self.initUI()
 		# self.cap = None
 		# self.timer = QTimer()
@@ -241,6 +231,10 @@ class MainWindow(inheritedMainWindow):
 		a = self.qaGetOneImageV2 = QAction('Get one image (ver.2 2022)', self)
 		a.triggered.connect(self.getOneImageV2)
 		#
+		a = self.qaGetVideo = QAction('Get a video', self)
+		a.triggered.connect(self.getVideo)
+		a.setShortcut('Ctrl+P')
+		#
 		a = self.qaCameraOff = QAction('Camera off', self)
 		a.triggered.connect(self.cameraOff)
 		#
@@ -256,11 +250,6 @@ class MainWindow(inheritedMainWindow):
 		a = self.qaCountEyes = QAction('Count eyes', self)
 		a.triggered.connect(self.countEyes)			
 		#
-		# a = self.qaStartVideo = QAction('Start Video', self)
-		# a.triggered.connect(self.start_capture_sequence)
-		# #
-		# a = self.qaStopVideo = QAction('Stop Video', self)
-		# a.triggered.connect(self.save_video)
 		# a = self.qaVideoOn = QAction('Count eyes in video', self)
 		# a.triggered.connect(self.videoOn)	
 		#
@@ -270,11 +259,9 @@ class MainWindow(inheritedMainWindow):
 		camMenu.addAction(self.qafindFocus)
 		camMenu.addAction(self.qaGetOneImage)
 		camMenu.addAction(self.qaGetOneImageV2)
+		camMenu.addAction(self.qaGetVideo)
 		camMenu.addAction(self.qaCameraOff)
 		camMenu.addAction(self.qanewcamerafunction)
-		# camMenu.addAction(self.qaStartVideo)
-		# camMenu.addAction(self.qaStopVideo)
-  
 		# print( "File {_appFileName}: (debug) last line in initMenu2()" ) 
 		diceMenu = self.mainMenu.addMenu('&Dice')
 		diceMenu.addAction(self.qaBlackDots)
@@ -297,6 +284,7 @@ class MainWindow(inheritedMainWindow):
 		self.qafindFocus.setEnabled(ueyeOK and self.camOn)
 		self.qaGetOneImage.setEnabled(ueyeOK and self.camOn)
 		self.qaGetOneImageV2.setEnabled(ueyeOK and self.camOn)
+		self.qaGetVideo.setEnabled(ueyeOK and self.camOn)
 		self.qaCameraOff.setEnabled(ueyeOK and self.camOn)
 		return
 	
@@ -370,14 +358,6 @@ class MainWindow(inheritedMainWindow):
 			self.camOn = True
 			self.setMenuItems2()
 			print( f"{self.appFileName}: cameraOn() Camera started ok" )
-			# # Saturation slider
-			# self.saturation_slider = QSlider(self)
-			# self.saturation_slider.setOrientation(Qt.Horizontal)
-			# self.saturation_slider.setMinimum(0)
-			# self.saturation_slider.setMaximum(200)
-			# self.saturation_slider.setValue(100)  # Default saturation value
-			# self.saturation_slider.valueChanged.connect(self.update_saturation)
-			# print("Saturation slider created")
 		#
 		return
 	
@@ -502,6 +482,23 @@ class MainWindow(inheritedMainWindow):
 		self.setIsAllGray()
 		self.setMenuItems2()
 		return
+
+	def getVideo(self):
+		
+		for i in range(0,20):
+			self.getOneImage()
+			time.sleep(1)
+			current_time_str = datetime.now().time().strftime("%H-%M-%S")
+			stringa = str(i)
+			fName = "./img/"+stringa+".jpg"
+			if (fName != ""):
+				if self.pixmap.save(fName):
+					print(f"Saved pixmap image into file {fName}")
+					self.setWindowTitle(f"{self.appFileName} : {fName}")
+				else:
+					print("Failed to save pixmap image into file {fName}")
+			self.findCircles()
+			self.countEyes()
 	
 	def getOneImage(self):
 		"""Get one image from IDS camera."""
@@ -829,109 +826,52 @@ class MainWindow(inheritedMainWindow):
 
 	# 	self.label_video.clear()
  
-	# def toggle_taking_pictures(self):
-	# 	if self.is_taking_pictures:
-	# 		self.stop_taking_pictures()
-	# 	else:
-	# 		self.start_taking_pictures()
-
-	# def start_taking_pictures(self):
-	# 	self.is_taking_pictures = True
-	# 	self.button.setText("Stop Taking Pictures")
-	# 	self.timer.start(1000)  
-
-	# def stop_taking_pictures(self):
-	# 	self.is_taking_pictures = False
-	# 	self.button.setText("Start Taking Pictures")
-	# 	self.timer.stop()
-
-	# def take_picture(self):
-	# 	# Simulate taking a picture with a timestamp
-	# 	timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-	# 	filename = f"picture_{timestamp}.jpg"
-	# 	self.getOneImage()
-	# 	print(f"Picture taken and saved as {filename}")
-
-	# 	self.pixmap.save(filename, "JPG")
-
-	# 	# Print confirmation
-	# 	print(f"Saved: {filename}")
- 
-	# def start_capture_sequence(self):
-	# 	# Start capturing images at a regular interval (e.g., 500 ms)
-	# 	self.capture_timer.timeout.connect(self.capture_image)
-	# 	self.capture_timer.start(500)  # Capture an image every 500 milliseconds
-
-	# def capture_image(self):
-	# 	# Capture frame from camera
-	# 	ret, frame = self.cam.read()
-	# 	if ret:
-	# 		self.image_sequence.append(frame)
-	# 		print(f"Captured image {len(self.image_sequence)}")
-
-	# def save_video(self):
-	# 	# Stop capturing
-	# 	self.capture_timer.stop()
-
-	# 	if len(self.image_sequence) == 0:
-	# 		print("No images captured.")
-	# 		return
-
-	# 	# Define the video codec and create a VideoWriter object
-	# 	height, width, layers = self.image_sequence[0].shape
-	# 	video_filename = "output_video.avi"
-	# 	video_writer = cv2.VideoWriter(video_filename, cv2.VideoWriter_fourcc(*'XVID'), 10, (width, height))
-
-	# 	# Write the image sequence to the video
-	# 	for image in self.image_sequence:
-	# 		video_writer.write(image)
-
-	# 	video_writer.release()
-	# 	print(f"Video saved as {video_filename}")
-
-	# def closeEvent(self, event):
-	# 	# Release the camera and stop the timer when the window is closed
-	# 	self.cam.release()
-	# 	self.capture_timer.stop()
-	# 	super().closeEvent(event)
- 
-	def keyPressEvent(self, event):
-		"""Handle key press events for taking pictures and ending capture."""
-		if event.key() == ord('P'):
-			# Start capturing a single picture
-			self.take_picture()
-		elif event.key() == ord('O'):
-			# End the capture process
-			self.end_capture_sequence()
-   
-	def take_picture(self):
-		"""Capture a single frame and save it in the specified folder."""
-		self.cam.freeze_video(wait=True)  # Capture a frame
-		img_buffer = self.cam.img_buffers[-1]  # Latest image buffer
-
-		# Convert buffer to a numpy array (assuming the image is in a standard format)
-		width = self.cam.get_aoi().width
-		height = self.cam.get_aoi().height
-		frame = np.frombuffer(img_buffer.mem_ptr, dtype=np.uint8).reshape((height, width, -1))
-
-		# Save the captured frame as an image file
-		image_filename = f"{self.image_folder}/image_{len(self.image_sequence)+1}.jpg"
-		cv2.imwrite(image_filename, frame)
-		self.image_sequence.append(frame)
-		print(f"Saved image as {image_filename}")
-
-	def end_capture_sequence(self):
-		"""End the image capture process."""
-		if len(self.image_sequence) == 0:
-			print("No images captured.")
+	def toggle_taking_pictures(self):
+		if self.is_taking_pictures:
+			self.stop_taking_pictures()
 		else:
-			print(f"Image capture ended. {len(self.image_sequence)} images saved in '{self.image_folder}'.")
+			self.start_taking_pictures()
 
-	def closeEvent(self, event):
-		"""Properly exit the camera when the window is closed."""
-		self.cam.exit()
-		super().closeEvent(event)
+	def start_taking_pictures(self):
+		self.is_taking_pictures = True
+		self.button.setText("Stop Taking Pictures")
+		self.timer.start(1000)  
+
+	def stop_taking_pictures(self):
+		self.is_taking_pictures = False
+		self.button.setText("Start Taking Pictures")
+		self.timer.stop()
+
+	def take_picture(self):
+		# Simulate taking a picture with a timestamp
+		timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+		filename = f"picture_{timestamp}.jpg"
+		directory = '.\imgvideo'
+		
+		filepath = os.path.join(directory, filename)
+		self.getOneImage()
+		print(f"Picture taken and saved as {filename}")
+
+		self.pixmap.save(filepath)
+
+		# Print confirmation
+		print(f"Saved: {filepath}")
  
+	def copilotfunction(self):
+		image_folder = 'images'
+		video_name = 'video.avi'
+
+		images = sorted(glob.glob(os.path.join(image_folder, '*.jpg')))
+		frame = cv2.imread(images[0])
+		height, width, layers = frame.shape
+
+		video = cv2.VideoWriter(video_name, cv2.VideoWriter_fourcc(*'DIVX'), 1, (width, height))
+
+		for image in images:
+			video.write(cv2.imread(image))
+
+		cv2.destroyAllWindows()
+		video.release()
 				  
 #end class MainWindow
 

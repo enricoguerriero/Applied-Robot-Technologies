@@ -34,6 +34,7 @@ except ImportError:
 	ueye_error = f"{_appFileName}: Requires IDS pyueye example files (and IDS camera)." 
 	# raise ImportError(ueye_error)
 	ueyeOK = False   # --> may run program even without pyueye
+import matplotlib.pyplot as plt
 
 try:
 	from PyQt5.QtCore import Qt, QPoint, QT_VERSION_STR, QTimer 
@@ -223,12 +224,41 @@ class MainWindow(inheritedMainWindow):
 		self.qaFindDisk.setEnabled(pixmapOK)   
 		self.qaFindDisk.setEnabled(pixmapOK)
 		return
+
+	def findCircles(self):
+		"""Find circles in active image using HoughCircles(..)."""
+		oldPixmap = self.prevPixmap  
+		self.prevPixmap = self.pixmap
+		self.A = np.array([])  
+		self.prepareHoughCirclesA()  
+
+		(dp, minDist, param1, param2, minRadius, maxRadius, maxCircles) = (2, 270, 327, 83, 185, 800, 1)
+		C = cv2.HoughCircles(self.A, cv2.HOUGH_GRADIENT, dp=dp, minDist=minDist,
+				param1=param1, param2=param2, minRadius=minRadius, maxRadius=maxRadius)
+
+		self.prepareHoughCirclesB()  
+		if C is not None:
+			C = np.int16(np.around(C))
+			print(f"  'C'  is ndarray of {C.dtype.name}, shape: {str(C.shape)}")
+			self.neyes = C.shape[1]
+			#for i in range(min(maxCircles, C.shape[1])):
+			(x,y,r) = ( C[0,0,0], C[0,0,1], C[0,0,2] )  
+			cv2.circle(self.B, (x,y), r, (0, 0, 255), 3) 
+		self.A = np.array([])  
+		self.np2image2pixmap(self.B, numpyAlso=True)
+		self.B = np.array([])  
+		self.setWindowTitle(f"{self.appFileName} indicate found circles.")
+
+		x = C[0, 0, 0] #rappresenta la coordinata X del centro del cerchio i
+		y = C[0, 0, 1] #rappresenta la coordinata Y del centro del cerchio i
+		r = C[0, 0, 2] #rappresenta il raggio del cerchio i
+		return x,y,r
 		
 # Methods for actions on the Disk-menu
 	def findDisk(self):
 		"""Find the large disk in the center of the image using ??."""
-		print("This function is not ready yet.")
-		print("Different approaches may be used, here we sketch one alternative that may (or may not) work.")
+		#print("This function is not ready yet.")
+		#print("Different approaches may be used, here we sketch one alternative that may (or may not) work.")
 		#
 		# -- your code may be written in between the comment lines below --
 		# find a large circle using HoughCircles
@@ -236,12 +266,11 @@ class MainWindow(inheritedMainWindow):
 		# print results, or indicate it on image
 		self.findCircles()
 		#
-		return
+		x,y,r = self.findCircles()
+		lowpointy = y-r
+		return x,y,r,lowpointy
 		
 	def findRedSector(self):
-		"""Find red sector for disc in active image using ??."""
-		print("This function is not ready yet.")
-		print("Different approaches may be used, here we sketch one alternative that may (or may not) work.")
 		#
 		# -- your code may be written in between the comment lines below --
 		# Check color for pixels in a given distance from center [0.75, 0.95]*radius and for all angles [0,1,2, 359]
@@ -249,15 +278,37 @@ class MainWindow(inheritedMainWindow):
 		# (score may be adjusted by position, based on illumination of disk)
 		# Find the weighted (based on score) mean position (x,y) for all checked pixels
 		# Find, and print perhaps also show on image, the angle of this mean
-		return
+
+		image = self.npImage
+		hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+
+		lower_red1 = np.array([0, 50, 50])
+		upper_red1 = np.array([10, 255, 255])
+		lower_red2 = np.array([170, 50, 50])
+		upper_red2 = np.array([180, 255, 255])
+
+		mask1 = cv2.inRange(hsv, lower_red1, upper_red1)
+		mask2 = cv2.inRange(hsv, lower_red2, upper_red2)
+		mask_red = mask1 + mask2
+		contours, _ = cv2.findContours(mask_red, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+		if contours:
+			largest_contour = max(contours, key=cv2.contourArea)
+
+			#Find center
+			M = cv2.moments(largest_contour)
+			if M["m00"] != 0:
+				cx = int(M["m10"] / M["m00"])
+				cy = int(M["m01"] / M["m00"])
+				center = (cx, cy)
+				print(f"Coordinate of the red sector center: {center}")
+			else:
+				print("I can not find a center")
+		return center
 		
 	def findSpeed(self):
-		"""Find speed for disk using ??."""
-		print("This function is not ready yet.")
-		print("Different approaches may be used, here we sketch one alternative that may (or may not) work.")
-		#
-		# -- your code may be written here --
-		#
+		x,y,r,lowpointy = self.findDisk()
+		center = self.findRedSector()
 		return
 		
 #end class MainWindow
