@@ -100,6 +100,6 @@ if __name__ == '__main__':
 		# MORE CODE HERE
 		
 		cv2.imshow("video", img)
-		if cv2.waitKey(25) & 0xFF == ord(’q’): break
+		if cv2.waitKey(25) & 0xFF == ord('q'): break
 	
 	cam.stop()
