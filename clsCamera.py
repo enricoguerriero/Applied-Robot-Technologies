@@ -93,12 +93,14 @@ if __name__ == '__main__':
 	cam.init(x = 176, y = 10, width = 928, height = 928,
 	         exposure = 2.5, trigger = True, delay = 25000)
 	
+	i=0
 	while True:
 		img = cam.capture()
 		img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
 		
 		# MORE CODE HERE
-		
+		print(i)
+		i += 1
 		cv2.imshow("video", img)
 		if cv2.waitKey(25) & 0xFF == ord('q'): break
 	
