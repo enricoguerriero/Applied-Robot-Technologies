@@ -109,9 +109,9 @@ class HoughCirclesDialog(QDialog):
 		self.spinBoxes[2].setSingleStep(5.0)     
 		self.spinBoxes[3].setRange(1.0, 400.0)   # param2
 		self.spinBoxes[3].setSingleStep(5.0)     
-		self.spinBoxes[4].setRange(5, 200)       # minRadius
+		self.spinBoxes[4].setRange(5, 500)       # minRadius
 		self.spinBoxes[4].setSingleStep(5)     
-		self.spinBoxes[5].setRange(-1, 400)      # maxRadius
+		self.spinBoxes[5].setRange(-1, 800)      # maxRadius
 		self.spinBoxes[5].setSingleStep(5)     
 		self.spinBoxes[6].setRange(1, 200)       # maxCircles
 		for i in range(len(self.spinBoxes)):
