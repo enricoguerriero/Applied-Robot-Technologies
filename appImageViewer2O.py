@@ -231,6 +231,10 @@ class MainWindow(inheritedMainWindow):
 		a = self.qaGetOneImageV2 = QAction('Get one image (ver.2 2022)', self)
 		a.triggered.connect(self.getOneImageV2)
 		#
+		a = self.qaGetVideo = QAction('Get a video', self)
+		a.triggered.connect(self.getVideo)
+		a.setShortcut('Ctrl+P')
+		#
 		a = self.qaCameraOff = QAction('Camera off', self)
 		a.triggered.connect(self.cameraOff)
 		#
@@ -255,6 +259,7 @@ class MainWindow(inheritedMainWindow):
 		camMenu.addAction(self.qafindFocus)
 		camMenu.addAction(self.qaGetOneImage)
 		camMenu.addAction(self.qaGetOneImageV2)
+		camMenu.addAction(self.qaGetVideo)
 		camMenu.addAction(self.qaCameraOff)
 		camMenu.addAction(self.qanewcamerafunction)
 		# print( "File {_appFileName}: (debug) last line in initMenu2()" ) 
@@ -279,6 +284,7 @@ class MainWindow(inheritedMainWindow):
 		self.qafindFocus.setEnabled(ueyeOK and self.camOn)
 		self.qaGetOneImage.setEnabled(ueyeOK and self.camOn)
 		self.qaGetOneImageV2.setEnabled(ueyeOK and self.camOn)
+		self.qaGetVideo.setEnabled(ueyeOK and self.camOn)
 		self.qaCameraOff.setEnabled(ueyeOK and self.camOn)
 		return
 	
@@ -476,6 +482,23 @@ class MainWindow(inheritedMainWindow):
 		self.setIsAllGray()
 		self.setMenuItems2()
 		return
+
+	def getVideo(self):
+		
+		for i in range(0,20):
+			self.getOneImage()
+			time.sleep(1)
+			current_time_str = datetime.now().time().strftime("%H-%M-%S")
+			stringa = str(i)
+			fName = "./img/"+stringa+".jpg"
+			if (fName != ""):
+				if self.pixmap.save(fName):
+					print(f"Saved pixmap image into file {fName}")
+					self.setWindowTitle(f"{self.appFileName} : {fName}")
+				else:
+					print("Failed to save pixmap image into file {fName}")
+			self.findCircles()
+			self.countEyes()
 	
 	def getOneImage(self):
 		"""Get one image from IDS camera."""
