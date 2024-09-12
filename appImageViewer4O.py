@@ -25,6 +25,7 @@ import os.path
 import numpy as np
 import cv2
 import matplotlib.pyplot as plt
+import math
 
 try:
 	from PyQt5.QtCore import Qt, QPoint, QT_VERSION_STR  
@@ -176,7 +177,29 @@ class MainWindow(inheritedMainWindow):
 	def findSpeed(self):
 		x,y,r,lowpointy = self.findDisk()
 		center = self.findRedSector()
+		centerCircle = (x,y)
+		centerSector1 = (x,lowpointy)
+		omega = self.calculate_angular_velocity(centerCircle,centerSector1,center,200000)
+		print(omega)
 		return
+
+	def calculate_angular_velocity(self, center_circle, center_sector_t1, center_sector_t2, delta_t):
+		# Calculate the angle at time t1
+		angle_t1 = math.atan2(center_sector_t1[1] - center_circle[1], center_sector_t1[0] - center_circle[0])
+		
+		# Calculate the angle at time t2
+		angle_t2 = math.atan2(center_sector_t2[1] - center_circle[1], center_sector_t2[0] - center_circle[0])
+		
+		# Angular difference
+		delta_theta = angle_t2 - angle_t1
+		
+		# Ensure the angle is between -pi and pi
+		delta_theta = (delta_theta + math.pi) % (2 * math.pi) - math.pi
+		
+		# Angular velocity
+		omega = delta_theta / delta_t
+		
+		return omega
 		
 #end class MainWindow
 
