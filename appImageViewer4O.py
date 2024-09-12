@@ -24,6 +24,7 @@ import os.path
 #from math import hypot, pi, atan2, cos, sin    # sqrt, cos, sin, tan, log, ceil, floor 
 import numpy as np
 import cv2
+import matplotlib.pyplot as plt
 
 try:
 	from PyQt5.QtCore import Qt, QPoint, QT_VERSION_STR  
@@ -106,9 +107,6 @@ class MainWindow(inheritedMainWindow):
 		return
 		
 	def findRedSector(self):
-		"""Find red sector for disc in active image using ??."""
-		print("This function is not ready yet.")
-		print("Different approaches may be used, here we sketch one alternative that may (or may not) work.")
 		#
 		# -- your code may be written in between the comment lines below --
 		# Check color for pixels in a given distance from center [0.75, 0.95]*radius and for all angles [0,1,2, 359]
@@ -116,7 +114,33 @@ class MainWindow(inheritedMainWindow):
 		# (score may be adjusted by position, based on illumination of disk)
 		# Find the weighted (based on score) mean position (x,y) for all checked pixels
 		# Find, and print perhaps also show on image, the angle of this mean
-		return
+
+		image = self.npImage
+		hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+
+		lower_red1 = np.array([0, 50, 50])
+		upper_red1 = np.array([10, 255, 255])
+		lower_red2 = np.array([170, 50, 50])
+		upper_red2 = np.array([180, 255, 255])
+
+		mask1 = cv2.inRange(hsv, lower_red1, upper_red1)
+		mask2 = cv2.inRange(hsv, lower_red2, upper_red2)
+		mask_red = mask1 + mask2
+		contours, _ = cv2.findContours(mask_red, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+		if contours:
+			largest_contour = max(contours, key=cv2.contourArea)
+
+			#Find center
+			M = cv2.moments(largest_contour)
+			if M["m00"] != 0:
+				cx = int(M["m10"] / M["m00"])
+				cy = int(M["m01"] / M["m00"])
+				center = (cx, cy)
+				print(f"Coordinate of the red sector center: {center}")
+			else:
+				print("I can not find a center")
+		return center
 		
 	def findSpeed(self):
 		"""Find speed for disk using ??."""
