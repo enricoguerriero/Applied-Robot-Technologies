@@ -27,7 +27,7 @@ import os.path
 import numpy as np
 import cv2
 import pandas as pd
-
+import tkinter as tk
 
 try:
 	from PyQt5.QtCore import Qt, QPoint, QT_VERSION_STR  
@@ -852,7 +852,6 @@ class MainWindow(inheritedMainWindow):
 	# 		ueye.is_ExitCamera(h_cam)
 
 #end class MainWindow
-
 if __name__ == '__main__':
 	print( f"{_appFileName}: (version {_version}), path for images is: {myPath}" )
 	print( f"{_appFileName}: Using Qt {QT_VERSION_STR}" )
@@ -869,4 +868,10 @@ if __name__ == '__main__':
 		mainWin = MainWindow() 
 	mainWin.show()
 	sys.exit(mainApp.exec_())
-	
+
+class NoeGikkFeil(Exception):
+	""" Exception used in cam_info() and perhaps other functions (?)
+	"""
+	def __init__(self, errNo, message):
+		self.errNo = errNo
+		self.message = message
