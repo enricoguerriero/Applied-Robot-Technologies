@@ -92,19 +92,50 @@ class MainWindow(inheritedMainWindow):
 		self.qaFindDisk.setEnabled(pixmapOK)   
 		self.qaFindDisk.setEnabled(pixmapOK)
 		return
+
+	def findCircles(self):
+		"""Find circles in active image using HoughCircles(..)."""
+		oldPixmap = self.prevPixmap  
+		self.prevPixmap = self.pixmap
+		self.A = np.array([])  
+		self.prepareHoughCirclesA()  
+
+		(dp, minDist, param1, param2, minRadius, maxRadius, maxCircles) = (2, 270, 327, 83, 185, 800, 1)
+		C = cv2.HoughCircles(self.A, cv2.HOUGH_GRADIENT, dp=dp, minDist=minDist,
+				param1=param1, param2=param2, minRadius=minRadius, maxRadius=maxRadius)
+
+		self.prepareHoughCirclesB()  
+		if C is not None:
+			C = np.int16(np.around(C))
+			print(f"  'C'  is ndarray of {C.dtype.name}, shape: {str(C.shape)}")
+			self.neyes = C.shape[1]
+			#for i in range(min(maxCircles, C.shape[1])):
+			(x,y,r) = ( C[0,0,0], C[0,0,1], C[0,0,2] )  
+			cv2.circle(self.B, (x,y), r, (0, 0, 255), 3) 
+		self.A = np.array([])  
+		self.np2image2pixmap(self.B, numpyAlso=True)
+		self.B = np.array([])  
+		self.setWindowTitle(f"{self.appFileName} indicate found circles.")
+
+		x = C[0, 0, 0] #rappresenta la coordinata X del centro del cerchio i
+		y = C[0, 0, 1] #rappresenta la coordinata Y del centro del cerchio i
+		r = C[0, 0, 2] #rappresenta il raggio del cerchio i
+		return x,y,r
 		
 # Methods for actions on the Disk-menu
 	def findDisk(self):
 		"""Find the large disk in the center of the image using ??."""
-		print("This function is not ready yet.")
-		print("Different approaches may be used, here we sketch one alternative that may (or may not) work.")
+		#print("This function is not ready yet.")
+		#print("Different approaches may be used, here we sketch one alternative that may (or may not) work.")
 		#
 		# -- your code may be written in between the comment lines below --
 		# find a large circle using HoughCircles
 		# perhaps locate center better by locating black center more exact
 		# print results, or indicate it on image
 		#
-		return
+		x,y,r = self.findCircles()
+		lowpointy = y-r
+		return x,y,r,lowpointy
 		
 	def findRedSector(self):
 		#
@@ -143,12 +174,8 @@ class MainWindow(inheritedMainWindow):
 		return center
 		
 	def findSpeed(self):
-		"""Find speed for disk using ??."""
-		print("This function is not ready yet.")
-		print("Different approaches may be used, here we sketch one alternative that may (or may not) work.")
-		#
-		# -- your code may be written here --
-		#
+		x,y,r,lowpointy = self.findDisk()
+		center = self.findRedSector()
 		return
 		
 #end class MainWindow
