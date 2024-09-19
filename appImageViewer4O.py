@@ -306,17 +306,38 @@ class MainWindow(inheritedMainWindow):
 			else:
 				print("I can not find a center")
 		return center
+
+	def calculate_angular_velocity(self, center_circle, center_sector_t2, delta_t, radius):
+		# Estremità del settore rosso al tempo t1 (punto più basso del cerchio)
+		center_sector_t1 = (center_circle[0], center_circle[1] - radius)
+
+		# Calcolo dell'angolo al tempo t1 (θ₁)
+		angle_t1 = math.atan2(center_sector_t1[1] - center_circle[1], center_sector_t1[0] - center_circle[0])
+
+		# Calcolo dell'angolo al tempo t2 (θ₂)
+		angle_t2 = math.atan2(center_sector_t2[1] - center_circle[1], center_sector_t2[0] - center_circle[0])
+
+		# Differenza angolare (Δθ)
+		delta_theta = angle_t2 - angle_t1
+
+		# Correzione per assicurare che l'angolo sia tra -π e π
+		delta_theta = (delta_theta + math.pi) % (2 * math.pi) - math.pi
+
+		# Calcolo della velocità angolare (ω = Δθ / Δt)
+		omega = delta_theta / delta_t
+
+		return omega
 		
 	def findSpeed(self):
 		x,y,r,lowpointy = self.findDisk()
 		center = self.findRedSector()
 		centerCircle = (x,y)
 		centerSector1 = (x,lowpointy)
-		omega = self.calculate_angular_velocity(centerCircle,centerSector1,center,200000)
+		omega = self.calculate_angular_velocity(centerCircle,centerSector1,center,20)
 		print(omega)
 		return
 
-	def calculate_angular_velocity(self, center_circle, center_sector_t1, center_sector_t2, delta_t):
+	"""def calculate_angular_velocity(self, center_circle, center_sector_t1, center_sector_t2, delta_t):
 		# Calculate the angle at time t1
 		angle_t1 = math.atan2(center_sector_t1[1] - center_circle[1], center_sector_t1[0] - center_circle[0])
 		
@@ -332,7 +353,7 @@ class MainWindow(inheritedMainWindow):
 		# Angular velocity
 		omega = delta_theta / delta_t
 		
-		return omega
+		return omega"""
 		
 #end class MainWindow
 
