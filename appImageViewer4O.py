@@ -196,6 +196,7 @@ class MainWindow(inheritedMainWindow):
 		# print( f"File {_appFileName}: (debug) first line in initMenu4()" )
 		a = self.qaCameraOnTrigger = QAction('Camera on', self)
 		a.triggered.connect(self.cameraOnTrigger)
+		a.setShortcut('Ctrl+R')
 		a.setToolTip("Turn IDS camera on")
 		a = self.qaFindDisk = QAction('Find disk', self)
 		a.triggered.connect(self.findDisk)
@@ -269,6 +270,8 @@ class MainWindow(inheritedMainWindow):
 		#
 		x,y,r = self.findCircles()
 		lowpointy = y-r
+		newimage = cv2.circle(self.npImage, (x,y), 10, (0, 0, 255), thickness=-1)  # thickness=-1 per cerchio pieno
+		cv2.imshow('Nome della Finestra', newimage)
 		return x,y,r,lowpointy
 		
 	def findRedSector(self):
@@ -293,6 +296,23 @@ class MainWindow(inheritedMainWindow):
 		mask_red = mask1 + mask2
 		contours, _ = cv2.findContours(mask_red, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
+		#kernel = np.ones((30, 30), np.uint8)
+		# Trova le componenti connesse
+		num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(mask_red, connectivity=8)
+
+		# Crea una nuova immagine vuota
+		filtered_image = np.zeros_like(mask_red)
+
+		# Mantieni solo la componente più grande
+		#largest_component = 1 + np.argmax(stats[1:, cv2.CC_STAT_AREA])  # Escludi l'etichetta di background
+
+		# Assegna solo la componente più grande alla nuova immagine
+		#filtered_image[labels == largest_component] = 255
+
+		# Applicazione dell'operazione di closing
+		#closing = cv2.morphologyEx(mask_red, cv2.MORPH_CLOSE, kernel)
+		#cv2.imshow('Immagine', filtered_image)
+
 		if contours:
 			largest_contour = max(contours, key=cv2.contourArea)
 
@@ -307,29 +327,7 @@ class MainWindow(inheritedMainWindow):
 				print("I can not find a center")
 		return center
 
-	def calculate_angular_velocity(self, center_circle, center_sector_t2, delta_t, radius):
-		# Estremità del settore rosso al tempo t1 (punto più basso del cerchio)
-		center_sector_t1 = (center_circle[0], center_circle[1] - radius)
-		print(center_sector_t1, "ciao")
-		# Calcolo dell'angolo al tempo t1 (θ₁)
-		angle_t1 = math.atan2(center_sector_t1[1] - center_circle[1], center_sector_t1[0] - center_circle[0])
-		print(angle_t1)
-		# Calcolo dell'angolo al tempo t2 (θ₂)
-		angle_t2 = math.atan2(center_sector_t2[1] - center_circle[1], center_sector_t2[0] - center_circle[0])
-		print(angle_t2)
-		# Differenza angolare (Δθ)
-		delta_theta = angle_t2 - angle_t1
-		print(delta_theta)
-		# Correzione per assicurare che l'angolo sia tra -π e π
-		delta_theta = (delta_theta + math.pi) % (2 * math.pi) - math.pi
-		print(delta_theta)
-		# Calcolo della velocità angolare (ω = Δθ / Δt)
-		omega = delta_theta / delta_t
-
-		return omega
-
-
-	def compute_angular_speed_degrees(x, y, t):
+	def compute_angular_speed_degrees(self, x, y, t):
 		"""
 		Compute the angular speed of a disk in degrees per second.
 
@@ -348,7 +346,7 @@ class MainWindow(inheritedMainWindow):
 		# Calculate the angular displacement using atan2 to handle all quadrants
 		# The lowest point corresponds to angle 0 (0 radians)
 		# atan2 returns angle relative to the positive x-axis, so adjust accordingly
-		theta_rad = math.atan2(x, -y)  # Swap arguments to set (0, -r) as 0 radians
+		theta_rad = math.atan2(x, -y)  # Swap arguments to set (0, -r) as 0 radians, maybe not -y but y
 
 		# Ensure theta is in the range [0, 2π)
 		if theta_rad < 0:
@@ -356,7 +354,7 @@ class MainWindow(inheritedMainWindow):
 
 		# Convert theta from radians to degrees
 		theta_deg = math.degrees(theta_rad)
-
+		print(theta_deg)
 		# Compute angular speed in degrees per second
 		omega_deg_per_sec = theta_deg / t
 
