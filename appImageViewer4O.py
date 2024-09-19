@@ -327,13 +327,49 @@ class MainWindow(inheritedMainWindow):
 		omega = delta_theta / delta_t
 
 		return omega
+
+
+	def compute_angular_speed_degrees(x, y, t):
+		"""
+		Compute the angular speed of a disk in degrees per second.
+
+		Args:
+			x (float): x-coordinate of the point on the disk.
+			y (float): y-coordinate of the point on the disk.
+			r (float): Radius of the disk.
+			t (float): Time taken to reach the position from the lowest point (in seconds).
+
+		Returns:
+			float: Angular speed in degrees per second.
+
+		Raises:
+			ValueError: If the point is not on the disk, radius is non-positive, or time is non-positive.
+		"""
+		# Calculate the angular displacement using atan2 to handle all quadrants
+		# The lowest point corresponds to angle 0 (0 radians)
+		# atan2 returns angle relative to the positive x-axis, so adjust accordingly
+		theta_rad = math.atan2(x, -y)  # Swap arguments to set (0, -r) as 0 radians
+
+		# Ensure theta is in the range [0, 2π)
+		if theta_rad < 0:
+			theta_rad += 2 * math.pi
+
+		# Convert theta from radians to degrees
+		theta_deg = math.degrees(theta_rad)
+
+		# Compute angular speed in degrees per second
+		omega_deg_per_sec = theta_deg / t
+
+		return omega_deg_per_sec
+
 		
 	def findSpeed(self):
 		x,y,r,lowpointy = self.findDisk()
 		center = self.findRedSector()
 		centerCircle = (x,y)
 		centerSector1 = (x,lowpointy)
-		omega = self.calculate_angular_velocity(centerCircle,centerSector1,center,20)
+		# omega = self.calculate_angular_velocity(centerCircle,centerSector1,center,20)
+		omega = self.compute_angular_speed_degrees(center[0], center[1], 20)
 		print(omega)
 		return
 
